@@ -1,0 +1,289 @@
+<header class="page-heading">
+  <div>
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a routerLink="/">Workspace</a><span>/ Live monitoring</span>
+      @if (cameraId()) {
+        <span>/ Camera detail</span>
+      }
+    </nav>
+    <h1>
+      {{ cameraId() ? feed().cameras[0]?.cameraName || 'Camera detail' : 'Live monitoring' }}
+    </h1>
+    <p>Latest persisted camera observations. Freshness tells you how current they are.</p>
+  </div>
+  <button class="button secondary" [disabled]="feed().loading" (click)="reload()">
+    <app-icon name="refresh" />Refresh
+  </button>
+</header>
+
+<div class="stack">
+  <div class="row row-cols-2 row-cols-xl-4 g-3">
+    <app-metric
+      label="Monitored zone occupancy"
+      [value]="num(occupancy())"
+      detail="Sum of known zones · not unique people"
+    /><app-metric
+      label="Cameras in this view"
+      [value]="feed().error ? 'N/A' : num(feed().cameras.length)"
+      detail="Registered cameras only"
+    /><app-metric
+      label="Connection mode"
+      [value]="realtime.mode().split(' · ')[0]"
+      [detail]="'REST sync every ' + context.api.config.refreshIntervalSeconds + 's'"
+    /><app-metric
+      label="Fresh cameras"
+      [value]="feed().error ? 'N/A' : num(feed().cameras.filter(isFresh).length)"
+      detail="According to backend freshness"
+    />
+  </div>
+
+  <section class="surface">
+    <header class="section-heading">
+      <div>
+        <h2>Camera observations</h2>
+        <p>
+          {{
+            feed().refreshedAt
+              ? 'Last REST sync ' + date(feed().refreshedAt, context.site()?.timeZoneId)
+              : 'Waiting for the first observation'
+          }}
+        </p>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="field search-field">
+        <label for="live-search">Search cameras</label>
+        <div class="search-input">
+          <app-icon name="search" /><input
+            id="live-search"
+            placeholder="Search camera name..."
+            [value]="search()"
+            (input)="search.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <div class="field">
+        <label for="live-freshness">Freshness</label
+        ><select
+          id="live-freshness"
+          [value]="freshness()"
+          (change)="freshness.set($any($event.target).value)"
+        >
+          <option value="">All states</option>
+          <option value="Fresh">Fresh</option>
+          <option value="Stale">Stale</option>
+          <option value="NoRecentData">No recent data</option>
+          <option value="NeverReceived">Never received</option>
+        </select>
+      </div>
+    </div>
+
+    @if (context.sitesError() && !cameraId()) {
+      <app-state [error]="context.sitesError()" (retry)="context.refreshSites()" />
+    } @else if (context.sitesLoading() || feed().loading) {
+      <app-state [loading]="true" />
+    } @else if (feed().error && !feed().cameras.length) {
+      <app-state [error]="feed().error" (retry)="reload()" />
+    } @else if (!context.selectedSiteId() && !cameraId()) {
+      <app-state
+        icon="building"
+        title="Start with a site"
+        message="Register a site, then add cameras and zones to begin monitoring."
+        ><a class="button" routerLink="/sites">Manage sites</a></app-state
+      >
+    } @else if (!feed().cameras.length) {
+      <app-state
+        icon="camera"
+        title="No cameras registered"
+        message="Add a camera to this site. Live readings appear after registered zones receive analytics."
+        ><a class="button" routerLink="/cameras">Manage cameras</a></app-state
+      >
+    } @else {
+      @if (feed().error) {
+        <div class="notice warning" role="alert">
+          <app-icon name="warning" />
+          <p>
+            Connection lost. Showing the last known snapshot; freshness may have changed.
+            {{ feed().error?.message }}
+          </p>
+        </div>
+      }
+      @if (!cameras().length) {
+        <app-state title="No matching cameras" message="Try another name or freshness filter." />
+      }
+      <div class="zone-list">
+        @for (camera of cameras(); track camera.cameraId) {
+          <article class="zone-row">
+            <div class="section-heading">
+              <div>
+                <h3>
+                  <app-icon name="camera" />
+                  <a [routerLink]="['/live', camera.cameraId]">{{ camera.cameraName }}</a>
+                </h3>
+                <p>
+                  External ID {{ camera.externalCameraId }} ·
+                  {{ camera.sourceType || 'Source unknown' }} ·
+                  {{ camera.analyticsStatus || 'No session' }}
+                </p>
+              </div>
+              <div class="button-group">
+                <app-status [value]="camera.isActive ? camera.dataFreshness : 'Inactive'" />
+
+                <a class="button quiet" [routerLink]="['/cameras', camera.cameraId, 'zones']"
+                  >Manage zones</a
+                >
+              </div>
+            </div>
+            <dl class="detail-list">
+              <div>
+                <dt>Latest received</dt>
+                <dd [title]="camera.lastReceivedAtUtc || ''">
+                  {{ date(camera.lastReceivedAtUtc, context.site()?.timeZoneId) }}
+                </dd>
+              </div>
+              <div>
+                <dt>Processing / staff</dt>
+                <dd>{{ num(camera.processingFps, 1) }} fps · {{ num(camera.staffCount) }} staff</dd>
+              </div>
+              <div>
+                <dt>Sequence / state version</dt>
+                <dd>{{ num(camera.lastSequence) }} / {{ num(camera.stateVersion) }}</dd>
+              </div>
+              <div>
+                <dt>Session</dt>
+                <dd>{{ camera.sessionId || 'No session yet' }}</dd>
+              </div>
+            </dl>
+            @if (camera.dataFreshness === 'NeverReceived') {
+              <p class="report-note">
+                Never received analytics. Register the correct external IDs and verify the publisher
+                topic.
+              </p>
+            }
+            @if (camera.sourceType === 'video_file') {
+              <p class="report-note">
+                Recorded-video observations. Receipt time is not the time a customer visited the
+                venue.
+              </p>
+            }
+            @if (!camera.zones.length) {
+              <p class="report-note">No registered zones to display.</p>
+            }
+            @for (zone of camera.zones; track zone.zoneId) {
+              <section class="zone-row">
+                <div class="link-row">
+                  <button class="button quiet" (click)="inspect(zone)">
+                    {{ zone.zoneName }} <app-icon name="right" />
+                  </button>
+                  <div class="button-group">
+                    @if (zone.previousSession) {
+                      <app-status value="Previous session" />
+                    }
+                    <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
+                    @if (zone.capacityStatus) {
+                      <app-status [value]="zone.capacityStatus" />
+                    }
+                  </div>
+                </div>
+                <dl class="detail-list">
+                  <div>
+                    <dt>Occupancy</dt>
+                    <dd>{{ num(zone.occupancy) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Arrivals / departures · cumulative</dt>
+                    <dd>{{ num(zone.zoneArrivals) }} / {{ num(zone.zoneDepartures) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Gate entries / exits · cumulative</dt>
+                    <dd>{{ num(zone.entry) }} / {{ num(zone.exit) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Capacity utilization</dt>
+                    <dd>
+                      {{
+                        zone.capacity == null
+                          ? 'Not configured'
+                          : num(zone.utilizationPercent, 1) +
+                            (zone.utilizationPercent == null ? '' : '%')
+                      }}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Wrong-way in / out</dt>
+                    <dd>{{ num(zone.wrongWayIn) }} / {{ num(zone.wrongWayOut) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Active tracks</dt>
+                    <dd>{{ num(zone.activeVisitorsCount) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Reported dwell / longest active</dt>
+                    <dd>
+                      {{ duration(zone.reportedAverageDwellSeconds) }} /
+                      {{ duration(zone.longestActiveDwellSeconds) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Latest zone update</dt>
+                    <dd>{{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}</dd>
+                  </div>
+                </dl>
+              </section>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>
+@if (drawerOpen()) {
+  <app-dialog title="Zone observation" (closed)="drawerOpen.set(false)">
+    @if (zoneLoading() || zoneError()) {
+      <app-state [loading]="zoneLoading()" [error]="zoneError()" (retry)="inspect(zone()!)" />
+    } @else if (zone(); as zone) {
+      <div class="stack">
+        <h3>{{ zone.zoneName }}</h3>
+        <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
+        <dl class="detail-list">
+          <div>
+            <dt>External zone ID</dt>
+            <dd>{{ zone.externalZoneId }}</dd>
+          </div>
+          <div>
+            <dt>Internal zone ID</dt>
+            <dd>{{ zone.zoneId }}</dd>
+          </div>
+          <div>
+            <dt>Session</dt>
+            <dd>{{ zone.sessionId || 'N/A' }}</dd>
+          </div>
+          <div>
+            <dt>Sequence / state version</dt>
+            <dd>{{ num(zone.sequence) }} / {{ num(zone.stateVersion) }}</dd>
+          </div>
+          <div>
+            <dt>Occupancy / capacity</dt>
+            <dd>{{ num(zone.occupancy) }} / {{ num(zone.capacity) }}</dd>
+          </div>
+          <div>
+            <dt>Last updated</dt>
+            <dd>{{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}</dd>
+          </div>
+        </dl>
+        <p class="report-note">
+          Live counters are cumulative snapshots. Occupancy is directly reported and may differ from
+          arrivals minus departures.
+        </p>
+        <a
+          class="button"
+          routerLink="/analytics"
+          [queryParams]="{ cameraId: zone.cameraId, zoneId: zone.zoneId }"
+          >Open zone analytics <app-icon name="arrow"
+        /></a>
+      </div>
+    }
+  </app-dialog>
+}

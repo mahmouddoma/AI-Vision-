@@ -1,0 +1,230 @@
+<header class="page-heading">
+  <div>
+    <h1>Overview</h1>
+    <p>A clearer view of your spaces. From live activity to meaningful insights.</p>
+  </div>
+  <button class="button secondary" [disabled]="feed().loading" (click)="refresh()">
+    <app-icon name="refresh" />Refresh workspace
+  </button>
+</header>
+<div class="stack">
+  <div class="row row-cols-2 row-cols-xl-4 g-3">
+    <app-metric
+      label="Registered cameras · all sites"
+      [value]="num(context.monitoring()?.registeredCameras)"
+      [detail]="
+        context.monitoringError()
+          ? 'Last known status · connection unavailable'
+          : 'Your connected camera registry'
+      "
+    /><app-metric
+      label="Fresh cameras · selected site"
+      [value]="feed().loading || feed().error ? 'N/A' : num(freshCount())"
+      detail="Backend-confirmed freshness"
+    /><app-metric
+      label="Monitored zone occupancy"
+      [value]="num(knownOccupancy())"
+      [detail]="
+        feed().error ? 'Last known snapshot, connection lost' : 'Known zones, not unique visitors'
+      "
+    /><app-metric
+      label="Report coverage"
+      [value]="report() ? num(report()!.dataQuality.coveragePercent, 1) + '%' : 'N/A'"
+      detail="Observed share of the selected period"
+    />
+  </div>
+  @if (context.monitoring(); as status) {
+    <div class="health-strip">
+      <span><app-icon name="pulse" />Network health · all sites</span
+      ><span>{{ status.fresh }} fresh</span><span>{{ status.stale }} stale</span
+      ><span>{{ status.noRecentData }} no recent data</span
+      ><span>{{ status.neverReceived }} never received</span><span>{{ status.ended }} ended</span>
+    </div>
+  }
+  @if (context.sitesLoading() || context.sitesError()) {
+    <section class="surface">
+      <app-state
+        [loading]="context.sitesLoading()"
+        [error]="context.sitesError()"
+        (retry)="context.refresh()"
+      />
+    </section>
+  } @else if (!context.sites().length) {
+    <section class="surface onboarding">
+      <div class="onboarding-symbol"><app-icon name="building" /></div>
+      <h2>Your insights start with a place</h2>
+      <p>
+        Create a site, register your cameras, then define their observation zones. Your real
+        activity will appear here as analytics arrive.
+      </p>
+      <a class="button" routerLink="/sites"><app-icon name="plus" />Set up your first site</a>
+      <div class="setup-steps">
+        <span><app-icon name="building" />Create a site</span><app-icon name="right" /><span
+          ><app-icon name="camera" />Register cameras</span
+        ><app-icon name="right" /><span><app-icon name="zones" />Define zones</span>
+      </div>
+    </section>
+  } @else {
+    <app-report-filters [busy]="reportLoading()" (changed)="filter.set($event)" />
+    @if (reportLoading() || reportError()) {
+      <section class="surface">
+        <app-state [loading]="reportLoading()" [error]="reportError()" (retry)="refresh()" />
+      </section>
+    } @else if (report(); as report) {
+      <section class="surface">
+        <header class="section-heading">
+          <div>
+            <h2>What the period tells us</h2>
+            <p>
+              {{
+                report.period.sourceType === 'video_file'
+                  ? 'Recorded video · source-relative time'
+                  : 'Live observations · event time'
+              }}
+              · {{ report.period.timeZoneId }}
+            </p>
+          </div>
+          <app-quality [value]="report.dataQuality" />
+        </header>
+        <div class="highlight-grid">
+          @for (item of highlights(); track item.label) {
+            <article>
+              <p>{{ item.label }}</p>
+              <h3>
+                {{
+                  item.row?.dataQuality?.kind === 'InsufficientData'
+                    ? 'N/A'
+                    : item.row?.zoneName || 'Not enough data'
+                }}
+              </h3>
+              <span>{{
+                item.row && item.row.dataQuality.kind !== 'InsufficientData'
+                  ? item.unit.includes('duration')
+                    ? duration(item.row.value)
+                    : num(item.row.value, 1) + ' ' + item.unit
+                  : 'Waiting for eligible observations'
+              }}</span>
+            </article>
+          }
+        </div>
+      </section>
+      @if (occupancyReport(); as occupancy) {
+        @for (zone of occupancy.zones; track zone.zoneId) {
+          <section class="surface">
+            <div class="section-heading">
+              <div>
+                <h2>{{ zone.zoneName }} · Activity over time</h2>
+                <p>
+                  {{ occupancy.period.interval }} buckets ·
+                  {{
+                    occupancy.period.timeBasis === 'sourceTime'
+                      ? 'Video positions'
+                      : occupancy.period.timeZoneId
+                  }}
+                </p>
+              </div>
+              <a
+                routerLink="/analytics"
+                [queryParams]="{
+                  tab: 'occupancy',
+                  cameraId: zoneCamera(zone.zoneId),
+                  zoneId: zone.zoneId,
+                }"
+                class="button quiet"
+                >Explore analytics <app-icon name="arrow"
+              /></a>
+            </div>
+            <app-chart
+              title="Zone occupancy"
+              description="Average and peak occupancy. Unobserved intervals remain gaps."
+              [points]="points(zone.series, occupancy.period)"
+              primaryLabel="Average occupancy"
+              secondaryLabel="Peak occupancy"
+            /><app-quality [value]="zone.dataQuality" />
+          </section>
+        } @empty {
+          <section class="surface">
+            <app-state
+              icon="chart"
+              title="Your trends will appear here"
+              message="No observations match this period. Check your camera setup or select a different range."
+            />
+          </section>
+        }
+      }
+    }
+    <section class="surface">
+      <div class="section-heading">
+        <div>
+          <h2>Your camera network</h2>
+          <p>
+            {{
+              feed().refreshedAt
+                ? 'Last REST sync ' + date(feed().refreshedAt, context.site()?.timeZoneId)
+                : 'Latest persisted observations'
+            }}
+          </p>
+        </div>
+        <a class="button quiet" routerLink="/live">Live monitoring <app-icon name="arrow" /></a>
+      </div>
+      @if (feed().loading || feed().error) {
+        <app-state [loading]="feed().loading" [error]="feed().error" (retry)="refresh()" />
+      } @else if (!feed().cameras.length) {
+        <app-state
+          icon="camera"
+          title="No cameras at this site"
+          message="Register cameras and zones to start receiving live analytics."
+          ><a class="button secondary" routerLink="/cameras">Manage cameras</a></app-state
+        >
+      } @else {
+        <app-table label="Selected site cameras"
+          ><table>
+            <caption class="visually-hidden">
+              Selected site camera health
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Camera</th>
+                <th scope="col">Source</th>
+                <th scope="col">Freshness</th>
+                <th scope="col">Zones</th>
+                <th scope="col">Last received</th>
+                <th scope="col">Inspect</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (camera of feed().cameras; track camera.cameraId) {
+                <tr>
+                  <th scope="row">
+                    {{ camera.cameraName
+                    }}<span class="cell-sub">{{ camera.externalCameraId }}</span>
+                  </th>
+                  <td>{{ camera.sourceType || 'Unknown' }}</td>
+                  <td>
+                    <app-status [value]="camera.isActive ? camera.dataFreshness : 'Inactive'" />
+                  </td>
+                  <td>{{ camera.zones.length }}</td>
+                  <td>{{ date(camera.lastReceivedAtUtc, context.site()?.timeZoneId) }}</td>
+                  <td>
+                    <a
+                      class="icon-button"
+                      [routerLink]="['/live', camera.cameraId]"
+                      [attr.aria-label]="'Inspect ' + camera.cameraName"
+                      ><app-icon name="right"
+                    /></a>
+                  </td>
+                </tr>
+              }
+            </tbody></table
+        ></app-table>
+      }
+    </section>
+    <div class="notice">
+      <app-icon name="info" />
+      <p>
+        Counts describe observed zones and camera tracks. Overlapping views cannot be combined into
+        unique visitor counts. Historical traffic uses server-derived period totals.
+      </p>
+    </div>
+  }
+</div>

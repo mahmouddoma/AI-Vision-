@@ -1,0 +1,6 @@
+{
+  "apiBaseUrl": "http://192.168.1.8:8005/api/v1",
+  "hubPath": "/hubs/analytics",
+  "signalREnabled": true,
+  "refreshIntervalSeconds": 30
+}

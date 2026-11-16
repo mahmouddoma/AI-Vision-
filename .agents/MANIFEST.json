@@ -1,0 +1,32 @@
+{
+  "name": "AI-Vision Frontend Agent",
+  "version": "2.1.0",
+  "created_utc": "2026-11-16",
+  "target": "AI-Vision workspace",
+  "instructions": "AGENTS.md",
+  "workspace_path": "<project>/.agents",
+  "skills": [
+    "accessibility-i18n",
+    "agent-operations",
+    "angular-engineering",
+    "api-contract-integration",
+    "code-review-refactor",
+    "debugging-root-cause",
+    "design-system",
+    "domain-workflow-analysis",
+    "frontend-engineering",
+    "jira-feature-delivery",
+    "mobile-ux-responsive",
+    "performance-scalability",
+    "project-onboarding",
+    "quality-testing",
+    "security-permissions",
+    "ui-ux-product-design"
+  ],
+  "subagents": [
+    "acceptance-qa-reviewer.md",
+    "architecture-reviewer.md",
+    "ux-auditor.md"
+  ],
+  "external_integrations_installed": false
+}

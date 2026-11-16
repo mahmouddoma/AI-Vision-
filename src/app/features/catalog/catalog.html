@@ -1,0 +1,386 @@
+@if (kind === 'zones') {
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a routerLink="/sites">{{ cameraInfo()?.siteName || 'Sites' }}</a><span>/</span
+    ><a routerLink="/cameras">{{ cameraInfo()?.name || 'Camera' }}</a
+    ><span>/ Zones</span>
+  </nav>
+}
+<header class="page-heading">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>
+      {{
+        kind === 'sites'
+          ? 'The places behind your insights. Manage locations and their time zones.'
+          : kind === 'cameras'
+            ? 'Connect your physical spaces to the analytics workspace.'
+            : 'Define the areas your camera observes. Zones stay scoped to this camera.'
+      }}
+    </p>
+  </div>
+  <button class="button" (click)="editor()"><app-icon name="plus" />Add {{ singular }}</button>
+</header>
+<div class="stack">
+  @if (success()) {
+    <div class="notice" role="status">
+      <app-icon name="success" /><span>{{ success() }}</span
+      ><button class="icon-button" aria-label="Dismiss message" (click)="success.set('')">
+        <app-icon name="close" />
+      </button>
+    </div>
+  }
+  @if (cameraInfo(); as camera) {
+    <div class="notice">
+      <app-icon name="camera" /><span
+        >{{ camera.name }} · External ID <strong>{{ camera.externalCameraId }}</strong> ·
+        <code>{{ camera.mqttTopic }}</code></span
+      >
+    </div>
+  }
+  <section class="surface">
+    <form class="toolbar" (submit)="$event.preventDefault(); find()">
+      <div class="field search-field">
+        <label for="catalog-search">Search {{ title.toLowerCase() }}</label>
+        <div class="search-input">
+          <app-icon name="search" /><input
+            id="catalog-search"
+            placeholder="Search by name or identifier..."
+            [value]="draftSearch()"
+            (input)="draftSearch.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      <button class="button secondary" type="submit">Search</button
+      ><button
+        type="button"
+        class="icon-button"
+        aria-label="Refresh list"
+        [disabled]="loading()"
+        (click)="reload()"
+      >
+        <app-icon name="refresh" />
+      </button>
+    </form>
+    @if (loading() || error()) {
+      <app-state [loading]="loading()" [error]="error()" (retry)="reload()" />
+    } @else if (!data()?.items?.length) {
+      <app-state
+        [icon]="kind === 'sites' ? 'building' : kind === 'cameras' ? 'camera' : 'zones'"
+        [title]="search() ? 'No matching records' : 'No ' + title.toLowerCase() + ' yet'"
+        [message]="
+          search()
+            ? 'Try a different name or clear the search.'
+            : 'Add your first ' + singular + ' to begin collecting meaningful insights.'
+        "
+        ><button class="button secondary" (click)="editor()">Add {{ singular }}</button></app-state
+      >
+    } @else {
+      <app-table [label]="title"
+        ><table>
+          <caption class="visually-hidden">
+            {{
+              title
+            }}
+            registry
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              @if (kind === 'sites') {
+                <th scope="col">Code</th>
+                <th scope="col">Time zone</th>
+                <th scope="col">Updated</th>
+              }
+              @if (kind === 'cameras') {
+                <th scope="col">Site</th>
+                <th scope="col">External ID / MQTT topic</th>
+                <th scope="col">Zones</th>
+                <th scope="col">Last received</th>
+              }
+              @if (kind === 'zones') {
+                <th scope="col">External ID</th>
+                <th scope="col">Capacity</th>
+                <th scope="col">Warning / critical</th>
+              }
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data()!.items; track row.id) {
+              <tr>
+                <th scope="row">{{ row.name }}</th>
+                @if (kind === 'sites') {
+                  <td>
+                    <code>{{ site(row).code }}</code>
+                  </td>
+                  <td>{{ site(row).timeZoneId }}</td>
+                  <td>{{ date(row.updatedAtUtc, site(row).timeZoneId) }}</td>
+                }
+                @if (kind === 'cameras') {
+                  <td>{{ camera(row).siteName }}</td>
+                  <td>
+                    <code>{{ camera(row).externalCameraId }}</code><span class="cell-sub">{{
+                      camera(row).mqttTopic
+                    }}</span>
+                  </td>
+                  <td>{{ camera(row).zonesCount }}</td>
+                  <td>{{ date(camera(row).lastReceivedAtUtc, context.site()?.timeZoneId) }}</td>
+                }
+                @if (kind === 'zones') {
+                  <td>
+                    <code>{{ zone(row).externalZoneId }}</code>
+                  </td>
+                  <td>
+                    {{ zone(row).capacity === null ? 'Not configured' : num(zone(row).capacity) }}
+                  </td>
+                  <td>
+                    {{ zone(row).warningThresholdPercent }}% /
+                    {{ zone(row).criticalThresholdPercent }}%
+                  </td>
+                }
+                <td><app-status [value]="row.isActive ? 'Active' : 'Inactive'" /></td>
+                <td>
+                  <div class="button-group">
+                    <button
+                      class="icon-button"
+                      [attr.aria-label]="'Edit ' + row.name"
+                      (click)="editor(row)"
+                    >
+                      <app-icon name="edit" />
+                    </button>
+                    <button class="button quiet" (click)="confirmStatus(row)">
+                      {{ row.isActive ? 'Deactivate' : 'Activate' }}
+                    </button>
+                    @if (kind === 'cameras') {
+                      <a class="button quiet" [routerLink]="['/cameras', row.id, 'zones']"
+                        >Manage zones</a
+                      ><a
+                        class="icon-button"
+                        [routerLink]="['/live', row.id]"
+                        [attr.aria-label]="'View ' + row.name + ' live'"
+                        ><app-icon name="live"
+                      /></a>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody></table
+      ></app-table>
+    }
+    @if (data(); as result) {
+      <app-pagination
+        [total]="result.totalCount"
+        [page]="result.page"
+        [pages]="result.totalPages"
+        [busy]="loading()"
+        (changed)="page.set($event)"
+      />
+    }
+  </section>
+</div>
+@if (dialogMode(); as mode) {
+  <app-dialog
+    [title]="
+      mode === 'editor'
+        ? (current() ? 'Edit ' : 'Add ') + singular
+        : (current()?.isActive ? 'Deactivate ' : 'Activate ') + singular
+    "
+    [busy]="saving()"
+    (closed)="close()"
+  >
+    @if (formError(); as problem) {
+      <div class="notice error" role="alert">
+        <app-icon name="warning" />
+        <div>
+          <p>{{ problem.message }}</p>
+          @if (problem.traceId) {
+            <small>Reference: {{ problem.traceId }}</small>
+          }
+          @for (field of problem.fields | keyvalue; track field.key) {
+            <p>{{ field.key }}: {{ field.value.join(' ') }}</p>
+          }
+          @if (problem.conflict && current()) {
+            <button class="button secondary" [disabled]="saving()" (click)="reloadRecord()">
+              Reload latest record
+            </button>
+          }
+        </div>
+      </div>
+    }
+    @if (mode === 'status') {
+      <p>
+        {{ current()?.isActive ? 'Stop collecting new observations for' : 'Enable' }}
+        <strong>{{ current()?.name }}</strong>? Existing history will be retained.
+      </p>
+      <div class="dialog-actions">
+        <button class="button secondary" [disabled]="saving()" (click)="close()">Cancel</button
+        ><button
+          class="button"
+          [disabled]="saving() || (!!current() && !!formError()?.conflict)"
+          (click)="changeStatus()"
+        >
+          {{ saving() ? 'Saving...' : 'Confirm' }}
+        </button>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="record-name">Name *</label
+            ><input
+              id="record-name"
+              formControlName="name"
+              autocomplete="off"
+              [attr.aria-invalid]="invalid('name')"
+              aria-describedby="name-error"
+            />
+            @if (invalid('name')) {
+              <p id="name-error" class="field-error">Enter a name (up to 200 characters).</p>
+            }
+          </div>
+          @if (kind === 'sites') {
+            <div class="field">
+              <label for="record-code">Site code *</label
+              ><input
+                id="record-code"
+                formControlName="code"
+                [attr.aria-invalid]="invalid('code')"
+                aria-describedby="code-error"
+              />
+              @if (invalid('code')) {
+                <p id="code-error" class="field-error">Site code is required.</p>
+              }
+            </div>
+            <div class="field">
+              <label for="record-timezone">Time zone *</label
+              ><input
+                id="record-timezone"
+                formControlName="timeZoneId"
+                placeholder="Africa/Cairo"
+                [attr.aria-invalid]="invalid('timeZoneId')"
+                aria-describedby="timezone-error"
+              />
+              <p class="field-help">Use a time zone supported by the backend.</p>
+              @if (invalid('timeZoneId')) {
+                <p id="timezone-error" class="field-error">Time zone is required.</p>
+              }
+            </div>
+          }
+          @if (kind === 'cameras') {
+            <div class="field">
+              <label for="record-site">Site *</label
+              ><select
+                id="record-site"
+                formControlName="siteId"
+                [attr.aria-invalid]="invalid('siteId')"
+                aria-describedby="site-error"
+              >
+                <option value="">Select a site</option>
+                @for (site of context.sites(); track site.id) {
+                  <option [value]="site.id">{{ site.name }}</option>
+                }
+              </select>
+              @if (invalid('siteId')) {
+                <p id="site-error" class="field-error">Select a site.</p>
+              }
+            </div>
+            <div class="field">
+              <label for="record-external-camera">External camera ID *</label
+              ><input
+                id="record-external-camera"
+                formControlName="externalCameraId"
+                [attr.aria-invalid]="invalid('externalCameraId')"
+                aria-describedby="camera-error"
+              />
+              <p class="field-help">Case-sensitive, e.g. cam1 or 2. No spaces, /, + or #.</p>
+              @if (invalid('externalCameraId')) {
+                <p id="camera-error" class="field-error">Enter a valid MQTT topic segment.</p>
+              }
+            </div>
+            <div class="full notice">
+              <app-icon name="link" /><span
+                >MQTT topic:
+                <code
+                  >cameras/{{
+                    form.controls.externalCameraId.value || '{externalCameraId}'
+                  }}/analytics</code
+                >. Site and external ID cannot change after ingestion.</span
+              >
+            </div>
+          }
+          @if (kind === 'zones') {
+            <div class="field">
+              <label for="record-external-zone">External zone ID *</label
+              ><input
+                id="record-external-zone"
+                formControlName="externalZoneId"
+                [attr.aria-invalid]="invalid('externalZoneId')"
+                aria-describedby="zone-error"
+              />
+              @if (invalid('externalZoneId')) {
+                <p id="zone-error" class="field-error">Enter a valid zone identifier.</p>
+              }
+            </div>
+            <div class="field">
+              <label for="record-capacity">Capacity (optional)</label
+              ><input
+                id="record-capacity"
+                type="number"
+                min="1"
+                step="1"
+                formControlName="capacity"
+                [attr.aria-invalid]="invalid('capacity')"
+                aria-describedby="capacity-help"
+              />
+              <p id="capacity-help" class="field-help">
+                Leave empty when unknown. Otherwise use a positive integer.
+              </p>
+            </div>
+            <div class="field">
+              <label for="record-warning">Warning threshold (%) *</label
+              ><input
+                id="record-warning"
+                type="number"
+                min="0"
+                formControlName="warningThresholdPercent"
+                [attr.aria-invalid]="invalid('warningThresholdPercent')"
+              />
+            </div>
+            <div class="field">
+              <label for="record-critical">Critical threshold (%) *</label
+              ><input
+                id="record-critical"
+                type="number"
+                min="0"
+                formControlName="criticalThresholdPercent"
+                [attr.aria-invalid]="invalid('criticalThresholdPercent')"
+              />
+            </div>
+            @if (form.hasError('thresholds') && form.touched) {
+              <p class="field-error full" role="alert">
+                Warning must be lower than critical. Both thresholds must be non-negative.
+              </p>
+            }
+          }
+          <div class="field full">
+            <label for="record-description">Description</label
+            ><textarea id="record-description" formControlName="description"></textarea>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="button secondary" [disabled]="saving()" (click)="close()">
+            Cancel</button
+          ><button
+            type="submit"
+            class="button"
+            [disabled]="saving() || (!!current() && !!formError()?.conflict)"
+          >
+            {{ saving() ? 'Saving...' : 'Save ' + singular }}
+          </button>
+        </div>
+      </form>
+    }
+  </app-dialog>
+}

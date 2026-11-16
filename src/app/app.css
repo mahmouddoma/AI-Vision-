@@ -1,0 +1,216 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-4);
+  background: var(--surface);
+  z-index: 20;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-7);
+  color: var(--ink);
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  text-decoration: none;
+}
+.brand-symbol {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 21px;
+}
+.brand-dot {
+  color: var(--accent);
+}
+.brand small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.nav-group {
+  margin: var(--space-6) var(--space-3) var(--space-3);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+nav {
+  display: grid;
+  gap: var(--space-1);
+}
+nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px var(--space-3);
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+}
+nav a:hover {
+  background: var(--canvas);
+  color: var(--ink);
+}
+nav a.nav-active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+nav app-icon {
+  width: 17px;
+  font-size: 15px;
+}
+.sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding: var(--space-4) var(--space-2) 0;
+}
+.sidebar-foot strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+.sidebar-foot small {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 10px;
+  color: var(--muted);
+}
+.workspace-mark {
+  color: var(--muted);
+  font-size: 21px;
+}
+.workspace {
+  margin-inline-start: var(--sidebar-width);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 76px;
+  padding-inline: var(--page-padding);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.site-context {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.site-context > app-icon {
+  color: var(--accent);
+}
+.site-context select {
+  border: 0;
+  background-color: transparent;
+  padding-inline-start: 0;
+  width: auto;
+  max-width: 260px;
+  font-weight: 600;
+}
+.context-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+}
+.timezone {
+  font-size: 11px;
+  color: var(--muted);
+}
+.connection-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  background: none;
+  font-size: 11px;
+  color: var(--muted);
+  padding: var(--space-3) 0;
+}
+.connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+.connection-dot.connected {
+  background: var(--accent);
+}
+.connection-button app-icon {
+  font-size: 9px;
+}
+main {
+  flex: 1;
+  padding: var(--space-7) var(--page-padding);
+  outline: none;
+  min-width: 0;
+}
+.workspace-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--page-padding);
+  color: var(--muted);
+  font-size: 10px;
+}
+.mobile-menu {
+  display: none;
+}
+@media (max-width: 991px) {
+  .sidebar {
+    display: none;
+  }
+  .workspace {
+    margin: 0;
+  }
+  .mobile-menu {
+    display: inline-flex;
+  }
+  .topbar {
+    min-height: 68px;
+  }
+}
+@media (max-width: 575px) {
+  .timezone,
+  .context-divider,
+  .connection-button > span:not(.connection-dot) {
+    display: none;
+  }
+  .topbar {
+    gap: var(--space-3);
+  }
+  .site-context {
+    margin-inline-end: auto;
+  }
+  .site-context select {
+    max-width: 185px;
+    font-size: 12px;
+  }
+  .workspace-footer {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}

@@ -1,0 +1,130 @@
+<header class="page-heading">
+  <div>
+    <h1>Sessions</h1>
+    <p>Explore live observation sessions and recorded-video analysis.</p>
+  </div>
+  <button class="button secondary" [disabled]="loading()" (click)="reload()">
+    <app-icon name="refresh" />Refresh
+  </button>
+</header>
+<section class="surface">
+  <form class="toolbar" (submit)="$event.preventDefault(); apply()">
+    <div class="field search-field">
+      <label for="session-search">Search sessions</label>
+      <div class="search-input">
+        <app-icon name="search" /><input
+          id="session-search"
+          placeholder="Source name or session ID..."
+          [value]="draft()"
+          (input)="draft.set($any($event.target).value)"
+        />
+      </div>
+    </div>
+    <div class="field">
+      <label for="session-source">Source</label
+      ><select
+        id="session-source"
+        [value]="source()"
+        (change)="source.set($any($event.target).value); page.set(1)"
+      >
+        <option value="">All sources</option>
+        <option value="live">Live</option>
+        <option value="video_file">Recorded video</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="session-camera">Camera</label
+      ><select
+        id="session-camera"
+        [value]="cameraId()"
+        (change)="cameraId.set($any($event.target).value); page.set(1)"
+      >
+        <option value="">All cameras</option>
+        @for (camera of cameras(); track camera.id) {
+          <option [value]="camera.id">{{ camera.name }}</option>
+        }
+      </select>
+    </div>
+    <button class="button secondary" type="submit">Search</button>
+  </form>
+  @if (loading() || error()) {
+    <app-state [loading]="loading()" [error]="error()" (retry)="reload()" />
+  } @else if (!data()?.items?.length) {
+    <app-state
+      icon="film"
+      title="No sessions found"
+      message="Sessions appear after analytics messages are ingested. Try changing your search or source filter."
+    />
+  } @else {
+    <app-table label="Analytics sessions"
+      ><table>
+        <caption class="visually-hidden">
+          Analytics sessions and ingestion metadata
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Session / source</th>
+            <th scope="col">Camera</th>
+            <th scope="col">Status</th>
+            <th scope="col">Sequence range</th>
+            <th scope="col">Video positions</th>
+            <th scope="col">Started / last received</th>
+            <th scope="col">Ended</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (session of data()!.items; track session.id) {
+            <tr>
+              <th scope="row">
+                <a [routerLink]="['/sessions', session.id]">{{
+                  session.sourceName || session.externalSessionId
+                }}</a><span class="cell-sub"
+                  >{{ session.externalSessionId }} ·
+                  {{ session.sourceType === 'video_file' ? 'Recorded video' : 'Live' }}</span
+                >
+              </th>
+              <td>{{ session.cameraName }}</td>
+              <td><app-status [value]="session.status" /></td>
+              <td>{{ num(session.firstSequence) }} · {{ num(session.lastSequence) }}</td>
+              <td>
+                {{
+                  session.sourceType === 'video_file'
+                    ? sourceTime(session.firstSourceTimeMs) +
+                      ' · ' +
+                      sourceTime(session.lastSourceTimeMs)
+                    : 'Not applicable'
+                }}
+              </td>
+              <td>
+                {{ date(session.startedAtUtc, context.site()?.timeZoneId)
+                }}<span class="cell-sub">{{
+                  date(session.lastReceivedAtUtc, context.site()?.timeZoneId)
+                }}</span>
+              </td>
+              <td>
+                {{
+                  session.endedAtUtc
+                    ? date(session.endedAtUtc, context.site()?.timeZoneId)
+                    : 'Not ended'
+                }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table></app-table
+    >
+  }
+  @if (data(); as data) {
+    <app-pagination
+      [total]="data.totalCount"
+      [page]="data.page"
+      [pages]="data.totalPages"
+      [busy]="loading()"
+      (changed)="page.set($event)"
+    />
+  }
+  <p class="report-note">
+    An ended session is a completed observation period, not a camera malfunction. Recorded-video
+    positions are elapsed time within the source file.
+  </p>
+</section>

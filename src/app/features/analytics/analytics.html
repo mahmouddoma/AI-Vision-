@@ -1,0 +1,526 @@
+<header class="page-heading">
+  <div>
+    <h1>Analytics</h1>
+    <p>Understand movement, occupancy and dwell. Every metric has a source.</p>
+  </div>
+  <button class="button secondary" [disabled]="loading() || !filter()" (click)="reload()">
+    <app-icon name="refresh" />Refresh
+  </button>
+</header>
+<div class="stack">
+  <app-report-filters [busy]="loading()" (changed)="filter.set($event)" />
+  <div class="tabs" role="tablist" aria-label="Analytics reports" (keydown)="onTabsKey($event)">
+    @for (item of tabs; track item.key) {
+      <button
+        role="tab"
+        [id]="'tab-' + item.key"
+        aria-controls="analytics-panel"
+        [attr.aria-selected]="tab() === item.key"
+        [attr.tabindex]="tab() === item.key ? 0 : -1"
+        (click)="tab.set(item.key)"
+      >
+        {{ item.label }}
+      </button>
+    }
+  </div>
+  <section
+    id="analytics-panel"
+    role="tabpanel"
+    [attr.aria-labelledby]="'tab-' + tab()"
+    class="stack"
+  >
+    @if (period(); as period) {
+      <p class="report-note">
+        {{
+          period.sourceType === 'video_file'
+            ? 'Recorded video · Source-relative timeline'
+            : 'Live observations · Event time'
+        }}
+        · {{ period.interval }} buckets · {{ period.timeZoneId }}
+        @if (period.from && period.to) {
+          · {{ date(period.from, period.timeZoneId) }} → {{ date(period.to, period.timeZoneId) }}
+        } @else {
+          · {{ sourceTime(period.fromSourceTimeMs) }} → {{ sourceTime(period.toSourceTimeMs) }}
+        }
+      </p>
+    }
+    @if (tab() === 'rankings') {
+      <div class="toolbar">
+        <div class="field">
+          <label for="ranking-metric">Rank zones by</label
+          ><select
+            id="ranking-metric"
+            [value]="metric()"
+            (change)="metric.set($any($event.target).value)"
+          >
+            @for (option of metricOptions; track option[0]) {
+              <option [value]="option[0]">{{ option[1] }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+    @if (tab() === 'dwell') {
+      <div class="notice">
+        <app-icon name="info" />
+        <p>
+          Camera-scoped track estimates, not unique visitors or confirmed exits. Occlusion, session
+          changes and video loops can affect dwell. Reported average dwell is the latest matching
+          sample, not a weighted historical average.
+        </p>
+      </div>
+      <div class="toolbar">
+        <div class="field">
+          <label for="dwell-metric">Dwell ranking</label
+          ><select
+            id="dwell-metric"
+            [value]="dwellMetric()"
+            (change)="dwellMetric.set($any($event.target).value)"
+          >
+            <option value="estimatedAverageDwell">Estimated historical average</option>
+            <option value="reportedAverageDwell">Latest reported average</option>
+            <option value="longestActiveDwell">Longest active dwell</option>
+          </select>
+        </div>
+      </div>
+    }
+    @if (loading() || error()) {
+      <section class="surface">
+        <app-state [loading]="loading()" [error]="error()" (retry)="reload()" />
+      </section>
+    } @else if (!filter()) {
+      <section class="surface">
+        <app-state
+          icon="filters"
+          title="Choose your report scope"
+          message="Select a source and apply a valid time range to explore your data."
+        />
+      </section>
+    } @else if (empty()) {
+      <section class="surface">
+        <app-state
+          icon="chart"
+          title="No eligible observations"
+          message="There is not enough data for this report. Try another period or source; unknown values are not zero."
+        />
+      </section>
+    } @else {
+      @if ((tab() === 'rankings' || tab() === 'dwell') && data()?.rankings; as report) {
+        <section class="surface">
+          <div class="section-heading">
+            <div>
+              <h2>{{ tab() === 'dwell' ? 'Dwell ranking' : 'Zone ranking' }}</h2>
+              <p>Unit: {{ report.unit }} · Ordered by server-calculated values</p>
+            </div>
+          </div>
+          <app-table label="Zone rankings"
+            ><table>
+              <caption class="visually-hidden">
+                Zone rankings and data quality
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Rank</th>
+                  <th scope="col">Zone</th>
+                  <th scope="col">Value ({{ report.unit }})</th>
+                  <th scope="col">Data quality</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of report.items; track item.zoneId) {
+                  <tr>
+                    <td>{{ item.rank }}</td>
+                    <th scope="row">
+                      <button class="button quiet" (click)="selectedZone.set(item.zoneId)">
+                        {{ item.zoneName }} <app-icon name="right" />
+                      </button>
+                    </th>
+                    <td>
+                      {{
+                        item.dataQuality.kind === 'InsufficientData' ? 'N/A' : num(item.value, 1)
+                      }}
+                    </td>
+                    <td><app-quality [value]="item.dataQuality" /></td>
+                  </tr>
+                }
+              </tbody></table
+          ></app-table>
+        </section>
+      }
+      @if (tab() === 'occupancy') {
+        <div class="notice">
+          <app-icon name="info" />
+          <p>
+            Zone occupancy may include overlapping views. Peak hour is the eligible hour with the
+            highest time-weighted average, not the highest single sample. Missing intervals remain
+            gaps.
+          </p>
+        </div>
+        @if (data()?.occupancy; as report) {
+          <section class="surface">
+            <h2>Occupancy & capacity</h2>
+            <app-table label="Occupancy summaries"
+              ><table>
+                <caption class="visually-hidden">
+                  Occupancy summaries
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Average</th>
+                    <th scope="col">Peak / position</th>
+                    <th scope="col">Peak hour</th>
+                    <th scope="col">Capacity</th>
+                    <th scope="col">Average / peak utilization</th>
+                    <th scope="col">Quality</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (zone of report.zones; track zone.zoneId) {
+                    <tr>
+                      <th scope="row">
+                        <button class="button quiet" (click)="selectedZone.set(zone.zoneId)">
+                          {{ zone.zoneName }}
+                        </button>
+                      </th>
+                      <td>{{ num(zone.averageOccupancy, 1) }}</td>
+                      <td>
+                        {{ num(zone.peakOccupancy)
+                        }}<span class="cell-sub">{{
+                          peakTime(zone.peakAtUtc, zone.peakAtSourceTimeMs)
+                        }}</span>
+                      </td>
+                      <td>{{ bucket(zone.peakHour) }}</td>
+                      <td>{{ zone.capacity === null ? 'Not configured' : num(zone.capacity) }}</td>
+                      <td>
+                        {{
+                          zone.capacity === null
+                            ? 'N/A'
+                            : num(utilization(zone.zoneId)?.averageUtilizationPercent, 1) +
+                              '% / ' +
+                              num(zone.peakUtilizationPercent, 1) +
+                              '%'
+                        }}
+                      </td>
+                      <td><app-quality [value]="zone.dataQuality" /></td>
+                    </tr>
+                  }
+                </tbody></table
+            ></app-table>
+          </section>
+          @for (zone of report.zones; track zone.zoneId) {
+            <section class="surface">
+              <app-chart
+                [title]="zone.zoneName + ' · Occupancy'"
+                description="Average and peak occupancy per period. Gaps represent unknown observations."
+                [points]="points(zone.series, report.period)"
+                primaryLabel="Average occupancy"
+                secondaryLabel="Peak occupancy"
+              />
+            </section>
+          }
+        }
+        @if (data()?.peaks; as report) {
+          <section class="surface">
+            <h2>Peak hours by metric</h2>
+            <app-table label="Peak hours"
+              ><table>
+                <caption class="visually-hidden">
+                  Peak hours by metric
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Occupancy</th>
+                    <th scope="col">Arrivals</th>
+                    <th scope="col">Entries</th>
+                    <th scope="col">Departures</th>
+                    <th scope="col">Wrong-way</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (zone of report.zones; track zone.zoneId) {
+                    <tr>
+                      <th scope="row">{{ zone.zoneName }}</th>
+                      <td>{{ bucket(zone.occupancy) }}</td>
+                      <td>{{ bucket(zone.arrivals) }}</td>
+                      <td>{{ bucket(zone.entries) }}</td>
+                      <td>{{ bucket(zone.departures) }}</td>
+                      <td>{{ bucket(zone.wrongWayEvents) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table></app-table
+            >
+          </section>
+        }
+      }
+      @if (tab() === 'traffic' && data()?.traffic; as report) {
+        <div class="row row-cols-2 row-cols-xl-4 g-3">
+          <app-metric
+            label="Zone arrivals"
+            [value]="hasTrafficData() ? num(report.totals.arrivals) : 'N/A'"
+            detail="Server-derived period total"
+          /><app-metric
+            label="Gate entries"
+            [value]="hasTrafficData() ? num(report.totals.entries) : 'N/A'"
+            detail="Different from zone arrivals"
+          /><app-metric
+            label="Zone departures"
+            [value]="hasTrafficData() ? num(report.totals.departures) : 'N/A'"
+            detail="Server-derived period total"
+          /><app-metric
+            label="Gate exits"
+            [value]="hasTrafficData() ? num(report.totals.exits) : 'N/A'"
+            detail="Different from zone departures"
+          />
+        </div>
+        <section class="surface">
+          <app-table label="Traffic by zone"
+            ><table>
+              <caption class="visually-hidden">
+                Traffic by zone
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Zone</th>
+                  <th scope="col">Arrivals</th>
+                  <th scope="col">Departures</th>
+                  <th scope="col">Entries</th>
+                  <th scope="col">Exits</th>
+                  <th scope="col">Wrong-way in / out / total</th>
+                  <th scope="col">Quality</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (zone of report.zones; track zone.zoneId) {
+                  <tr>
+                    <th scope="row">{{ zone.zoneName }}</th>
+                    <td>
+                      {{
+                        zone.dataQuality.kind === 'InsufficientData'
+                          ? 'N/A'
+                          : num(zone.traffic.arrivals)
+                      }}
+                    </td>
+                    <td>
+                      {{
+                        zone.dataQuality.kind === 'InsufficientData'
+                          ? 'N/A'
+                          : num(zone.traffic.departures)
+                      }}
+                    </td>
+                    <td>
+                      {{
+                        zone.dataQuality.kind === 'InsufficientData'
+                          ? 'N/A'
+                          : num(zone.traffic.entries)
+                      }}
+                    </td>
+                    <td>
+                      {{
+                        zone.dataQuality.kind === 'InsufficientData'
+                          ? 'N/A'
+                          : num(zone.traffic.exits)
+                      }}
+                    </td>
+                    <td>
+                      {{ num(zone.traffic.wrongWayIn) }} / {{ num(zone.traffic.wrongWayOut) }} /
+                      {{ num(zone.traffic.wrongWayEvents) }}
+                    </td>
+                    <td><app-quality [value]="zone.dataQuality" /></td>
+                  </tr>
+                }
+              </tbody></table
+          ></app-table>
+        </section>
+        @for (zone of data()?.trends?.zones; track zone.zoneId) {
+          <section class="surface stack">
+            <app-chart
+              [title]="zone.zoneName + ' · Inbound traffic'"
+              description="Server-derived changes per bucket, not sums of cumulative snapshots."
+              [points]="points(zone.series, report.period, 'traffic')"
+              primaryLabel="Zone arrivals"
+              secondaryLabel="Gate entries"
+            /><app-chart
+              [title]="zone.zoneName + ' · Outbound traffic'"
+              [points]="points(zone.series, report.period, 'departures')"
+              primaryLabel="Zone departures"
+              secondaryLabel="Gate exits"
+            />
+          </section>
+        }
+      }
+      @if (tab() === 'dwell' && data()?.dwell; as report) {
+        <section class="surface">
+          <app-table label="Dwell metrics"
+            ><table>
+              <caption class="visually-hidden">
+                Reported and estimated dwell metrics
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Zone</th>
+                  <th scope="col">Latest reported average</th>
+                  <th scope="col">Longest active</th>
+                  <th scope="col">Estimated completed visits</th>
+                  <th scope="col">Estimated total dwell</th>
+                  <th scope="col">Estimated historical average</th>
+                  <th scope="col">Uncertain visits</th>
+                  <th scope="col">Quality</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (zone of report.zones; track zone.zoneId) {
+                  <tr>
+                    <th scope="row">
+                      <button class="button quiet" (click)="selectedZone.set(zone.zoneId)">
+                        {{ zone.zoneName }}
+                      </button>
+                    </th>
+                    <td>
+                      {{ duration(zone.reportedAverageDwellSeconds) }}
+                      <app-status value="Reported" />
+                    </td>
+                    <td>{{ duration(zone.longestActiveDwellSeconds) }}</td>
+                    <td>
+                      {{ num(zone.estimatedCompletedVisits) }} <app-status value="Estimated" />
+                    </td>
+                    <td>{{ duration(zone.estimatedTotalDwellSeconds) }}</td>
+                    <td>{{ duration(zone.estimatedHistoricalAverageDwellSeconds) }}</td>
+                    <td>{{ num(zone.uncertainVisits) }}</td>
+                    <td><app-quality [value]="zone.dataQuality" /></td>
+                  </tr>
+                }
+              </tbody></table
+          ></app-table>
+        </section>
+      }
+      @if (tab() === 'wrong-way' && data()?.wrongWay; as report) {
+        <div class="row row-cols-2 row-cols-xl-4 g-3">
+          <app-metric
+            label="Wrong-way in"
+            [value]="hasWrongWayData() ? num(report.wrongWayIn) : 'N/A'"
+          /><app-metric
+            label="Wrong-way out"
+            [value]="hasWrongWayData() ? num(report.wrongWayOut) : 'N/A'"
+          /><app-metric
+            label="Wrong-way events"
+            [value]="hasWrongWayData() ? num(report.wrongWayEvents) : 'N/A'"
+            detail="No violation percentage inferred"
+          /><app-metric
+            label="Highest wrong-way zone"
+            [value]="report.highestWrongWayZone?.zoneName || 'N/A'"
+          />
+        </div>
+        @for (zone of report.zones; track zone.zoneId) {
+          <section class="surface stack">
+            <div class="section-heading">
+              <h2>{{ zone.zoneName }}</h2>
+              <app-quality [value]="zone.dataQuality" />
+            </div>
+            <p>
+              {{ num(zone.traffic.wrongWayIn) }} inward ·
+              {{ num(zone.traffic.wrongWayOut) }} outward ·
+              {{ num(zone.traffic.wrongWayEvents) }} total events
+            </p>
+            <app-chart
+              [title]="zone.zoneName + ' · Wrong-way movement'"
+              [points]="points(zone.series, report.period, 'wrong-way')"
+              primaryLabel="Wrong-way in"
+              secondaryLabel="Wrong-way out"
+            />
+          </section>
+        }
+      }
+      @if (tab() === 'staff' && data()?.staff; as report) {
+        <div class="notice">
+          <app-icon name="info" />
+          <p>
+            Staff presence is camera-scoped. Overlapping views cannot be added together to count
+            distinct employees.
+          </p>
+        </div>
+        @for (camera of report.cameras; track camera.cameraId) {
+          <section class="surface stack">
+            <div class="section-heading">
+              <h2>{{ camera.cameraName }}</h2>
+              <app-quality [value]="camera.dataQuality" />
+            </div>
+            <dl class="detail-list">
+              <div>
+                <dt>Latest staff count</dt>
+                <dd>{{ num(camera.latestStaffCount) }}</dd>
+              </div>
+              <div>
+                <dt>Last observation</dt>
+                <dd>{{ date(camera.lastReceivedAtUtc, report.period.timeZoneId) }}</dd>
+              </div>
+              <div>
+                <dt>Average staff</dt>
+                <dd>{{ num(camera.averageStaffCount, 1) }}</dd>
+              </div>
+              <div>
+                <dt>Peak staff</dt>
+                <dd>{{ num(camera.peakStaffCount) }}</dd>
+              </div>
+            </dl>
+            <app-chart
+              [title]="camera.cameraName + ' · Staff presence'"
+              [points]="staffPoints(camera.series, report.period)"
+              primaryLabel="Average staff"
+              secondaryLabel="Peak staff"
+            />
+          </section>
+        }
+      }
+    }
+  </section>
+  @if (selectedZone()) {
+    <app-dialog title="Zone analysis" (closed)="selectedZone.set(null)">
+      @if (zoneLoading() || zoneError()) {
+        <app-state
+          [loading]="zoneLoading()"
+          [error]="zoneError()"
+          (retry)="selectedZone.set(null)"
+        />
+      } @else if (zoneData(); as detail) {
+        <div class="stack">
+          <div class="section-heading">
+            <h2>{{ detail.summary.zoneName }}</h2>
+            <app-quality [value]="detail.summary.dataQuality" />
+          </div>
+          <dl class="detail-list">
+            <div>
+              <dt>Average / peak occupancy</dt>
+              <dd>
+                {{ num(detail.summary.averageOccupancy, 1) }} /
+                {{ num(detail.summary.peakOccupancy) }}
+              </dd>
+            </div>
+            <div>
+              <dt>Peak position</dt>
+              <dd>{{ peakTime(detail.summary.peakAtUtc, detail.summary.peakAtSourceTimeMs) }}</dd>
+            </div>
+            <div>
+              <dt>Reported dwell (latest sample)</dt>
+              <dd>{{ duration(detail.summary.reportedAverageDwellSeconds) }}</dd>
+            </div>
+            <div>
+              <dt>Estimated historical dwell</dt>
+              <dd>{{ duration(detail.summary.estimatedHistoricalAverageDwellSeconds) }}</dd>
+            </div>
+          </dl>
+          @for (zone of detail.series.zones; track zone.zoneId) {
+            <app-chart
+              [title]="zone.zoneName + ' · Occupancy'"
+              [points]="points(zone.series, detail.series.period)"
+              primaryLabel="Average"
+              secondaryLabel="Peak"
+            />
+          }
+        </div>
+      }
+    </app-dialog>
+  }
+</div>

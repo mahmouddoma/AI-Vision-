@@ -1,0 +1,182 @@
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <a routerLink="/sessions">Sessions</a><span>/ Report</span>
+</nav>
+<header class="page-heading">
+  <div>
+    <h1>{{ session()?.sourceName || 'Session report' }}</h1>
+    <p>Session-level observations with explicit time and quality context.</p>
+  </div>
+  <button class="button secondary" (click)="reload()" [disabled]="loading()">
+    <app-icon name="refresh" />Refresh
+  </button>
+</header>
+@if (loading() || error()) {
+  <section class="surface">
+    <app-state [loading]="loading()" [error]="error()" (retry)="reload()" />
+  </section>
+} @else if (session(); as session) {
+  <div class="stack">
+    <section class="surface">
+      <div class="section-heading">
+        <div>
+          <h2>{{ session.cameraName }}</h2>
+          <p>
+            {{ session.externalSessionId }} ·
+            {{ session.sourceType === 'video_file' ? 'Recorded video' : 'Live observations' }}
+          </p>
+        </div>
+        <app-status [value]="session.status" />
+      </div>
+      <dl class="detail-list">
+        <div>
+          <dt>Source name</dt>
+          <dd>{{ session.sourceName || 'N/A' }}</dd>
+        </div>
+        <div>
+          <dt>Sequence range</dt>
+          <dd>{{ num(session.firstSequence) }} · {{ num(session.lastSequence) }}</dd>
+        </div>
+        <div>
+          <dt>Source positions</dt>
+          <dd>
+            {{
+              session.sourceType === 'video_file'
+                ? sourceTime(session.firstSourceTimeMs) +
+                  ' · ' +
+                  sourceTime(session.lastSourceTimeMs)
+                : 'Live event time'
+            }}
+          </dd>
+        </div>
+        <div>
+          <dt>Receipt time (ingestion)</dt>
+          <dd>{{ date(session.lastReceivedAtUtc, context.site()?.timeZoneId) }}</dd>
+        </div>
+        <div>
+          <dt>First / last source timestamp (UTC metadata)</dt>
+          <dd>
+            {{ date(session.firstSourceTimestampUtc) }} · {{ date(session.lastSourceTimestampUtc) }}
+          </dd>
+        </div>
+        <div>
+          <dt>Started / ended (ingestion)</dt>
+          <dd>
+            {{ date(session.startedAtUtc) }} ·
+            {{ session.endedAtUtc ? date(session.endedAtUtc) : 'Not ended' }}
+          </dd>
+        </div>
+      </dl>
+    </section>
+    @if (session.sourceType === 'video_file') {
+      <div class="notice warning">
+        <app-icon name="info" />
+        <p>
+          Video positions are elapsed playback time, not real venue visit times. Repeated video
+          loops can affect counts and dwell. Raw video playback is not available through this API.
+        </p>
+      </div>
+    }
+    <app-report-filters
+      [session]="session"
+      [busy]="reportLoading()"
+      (changed)="filter.set($event)"
+    />
+    @if (reportLoading() || reportError()) {
+      <section class="surface">
+        <app-state [loading]="reportLoading()" [error]="reportError()" (retry)="reloadReport()" />
+      </section>
+    } @else if (report(); as report) {
+      <div class="row row-cols-2 row-cols-xl-4 g-3">
+        <app-metric
+          label="Unpositioned video observations"
+          [value]="num(report.untimedVideoObservations)"
+          detail="Observations missing a video timeline position"
+        /><app-metric
+          label="Observed zones"
+          [value]="num(report.analytics.zones.length)"
+          detail="Registered zones in this session"
+        /><app-metric
+          label="Timeline basis"
+          [value]="report.analytics.period.timeBasis === 'sourceTime' ? 'Video time' : 'Event time'"
+          [detail]="report.analytics.period.timeZoneId"
+        /><app-metric
+          label="Interval"
+          [value]="report.analytics.period.interval"
+          detail="Server-calculated report buckets"
+        />
+      </div>
+      @if (!report.analytics.zones.length) {
+        <section class="surface">
+          <app-state
+            title="No timed observations"
+            message="No eligible zone observations match this session range. Adjust the source positions or review missing-position counts."
+          />
+        </section>
+      }
+      @for (zone of report.analytics.zones; track zone.zoneId) {
+        <section class="surface stack">
+          <div class="section-heading">
+            <h2>{{ zone.zoneName }}</h2>
+            <app-quality [value]="zone.dataQuality" />
+          </div>
+          <dl class="detail-list">
+            <div>
+              <dt>Average / peak occupancy</dt>
+              <dd>{{ num(zone.averageOccupancy, 1) }} / {{ num(zone.peakOccupancy) }}</dd>
+            </div>
+            <div>
+              <dt>Peak position</dt>
+              <dd>
+                {{
+                  report.analytics.period.timeBasis === 'sourceTime'
+                    ? sourceTime(zone.peakAtSourceTimeMs)
+                    : zone.peakAtUtc
+                      ? date(zone.peakAtUtc, report.analytics.period.timeZoneId)
+                      : 'N/A'
+                }}
+              </dd>
+            </div>
+            <div>
+              <dt>Estimated historical dwell</dt>
+              <dd>{{ duration(zone.estimatedHistoricalAverageDwellSeconds) }}</dd>
+            </div>
+            <div>
+              <dt>Uncertain visits</dt>
+              <dd>{{ num(zone.uncertainVisits) }}</dd>
+            </div>
+          </dl>
+          <app-chart
+            [title]="zone.zoneName + ' · Occupancy'"
+            [points]="points(zone.series, report.analytics.period)"
+            primaryLabel="Average occupancy"
+            secondaryLabel="Peak occupancy"
+          /><app-chart
+            [title]="zone.zoneName + ' · Traffic'"
+            [points]="points(zone.series, report.analytics.period, 'traffic')"
+            primaryLabel="Zone arrivals"
+            secondaryLabel="Gate entries"
+          />
+        </section>
+      }
+      @for (camera of report.staff.cameras; track camera.cameraId) {
+        <section class="surface stack">
+          <div class="section-heading">
+            <h2>{{ camera.cameraName }} · Staff</h2>
+            <app-quality [value]="camera.dataQuality" />
+          </div>
+          <p>
+            Latest {{ num(camera.latestStaffCount) }} · Average
+            {{ num(camera.averageStaffCount, 1) }} · Peak {{ num(camera.peakStaffCount) }}.
+            Camera-scoped observations, not distinct employees.
+          </p>
+          <app-chart
+            [title]="camera.cameraName + ' - Staff presence'"
+            [points]="staffPoints(camera.series, report.staff.period)"
+            primaryLabel="Average staff"
+            secondaryLabel="Peak staff"
+          />
+        </section>
+      }
+    }
+  </div>
+}

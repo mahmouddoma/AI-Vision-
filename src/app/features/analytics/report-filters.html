@@ -1,0 +1,160 @@
+<details
+  class="surface filter-panel"
+  [open]="expanded()"
+  (toggle)="expanded.set($any($event.target).open)"
+>
+  <summary>
+    <app-icon name="filters" />Report filters
+    <span class="text-muted"
+      >· {{ source() === 'video_file' ? 'Video source time' : 'Live event time' }}</span
+    >
+  </summary>
+  <form (submit)="$event.preventDefault(); apply()">
+    <div class="toolbar">
+      <div class="field">
+        <label for="filter-source">Data source</label
+        ><select
+          id="filter-source"
+          [ngModel]="source()"
+          (ngModelChange)="source.set($event); sessionId.set('')"
+          name="source"
+          [disabled]="!!session()"
+        >
+          <option value="live">Live observations</option>
+          <option value="video_file">Recorded video</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-camera">Camera</label
+        ><select
+          id="filter-camera"
+          [ngModel]="cameraId()"
+          (ngModelChange)="setCamera($event)"
+          name="camera"
+          [disabled]="!!session()"
+        >
+          <option value="">All cameras</option>
+          @for (camera of cameras(); track camera.id) {
+            <option [value]="camera.id">{{ camera.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-zone">Zone</label
+        ><select
+          id="filter-zone"
+          [ngModel]="zoneId()"
+          (ngModelChange)="zoneId.set($event)"
+          name="zone"
+          [disabled]="!cameraId()"
+        >
+          <option value="">All zones</option>
+          @for (zone of zones(); track zone.id) {
+            <option [value]="zone.id">{{ zone.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-interval">Interval</label
+        ><select
+          id="filter-interval"
+          [ngModel]="interval()"
+          (ngModelChange)="interval.set($event)"
+          name="interval"
+        >
+          <option value="minute">Minute</option>
+          <option value="hour">Hour</option>
+          <option value="day">Day</option>
+        </select>
+      </div>
+    </div>
+    <div class="toolbar">
+      @if (source() === 'live') {
+        <div class="field">
+          <label for="filter-from">From (inclusive)</label
+          ><input
+            id="filter-from"
+            type="datetime-local"
+            [ngModel]="from()"
+            (ngModelChange)="from.set($event)"
+            name="from"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="filter-to">To (exclusive)</label
+          ><input
+            id="filter-to"
+            type="datetime-local"
+            [ngModel]="to()"
+            (ngModelChange)="to.set($event)"
+            name="to"
+            required
+          />
+        </div>
+      } @else {
+        <div class="field">
+          <label for="filter-session">Video session *</label
+          ><select
+            id="filter-session"
+            [ngModel]="sessionId()"
+            (ngModelChange)="sessionId.set($event)"
+            name="sessionId"
+            [disabled]="!!session()"
+          >
+            <option value="">Select a session</option>
+            @if (session(); as current) {
+              <option [value]="current.id">{{ current.sourceName }}</option>
+            }
+            @for (item of sessions(); track item.id) {
+              <option [value]="item.id">
+                {{ item.cameraName }} · {{ item.sourceName }} · {{ item.externalSessionId }}
+              </option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="filter-from-ms">From position (ms)</label
+          ><input
+            id="filter-from-ms"
+            type="number"
+            min="0"
+            step="1"
+            [ngModel]="fromMs()"
+            (ngModelChange)="fromMs.set($event)"
+            name="fromMs"
+          />
+        </div>
+        <div class="field">
+          <label for="filter-to-ms">To position (ms)</label
+          ><input
+            id="filter-to-ms"
+            type="number"
+            min="0"
+            step="1"
+            [ngModel]="toMs()"
+            (ngModelChange)="toMs.set($event)"
+            name="toMs"
+          />
+        </div>
+      }
+      <button class="button" [disabled]="busy()" type="submit">
+        <app-icon name="check" />{{ busy() ? 'Loading...' : 'Apply filters' }}
+      </button>
+    </div>
+    <p class="field-help">
+      {{
+        source() === 'live'
+          ? 'Date inputs use ' +
+            localTimezone +
+            '. Requests use UTC; displayed reports use ' +
+            (context.site()?.timeZoneId || 'the report time zone') +
+            '. Range is [from, to).'
+          : 'Positions are elapsed milliseconds within the video, not venue clock time.'
+      }}
+    </p>
+    @if (error() || lookupsError()) {
+      <p class="field-error" role="alert">{{ error() || lookupsError() }}</p>
+    }
+  </form>
+</details>
