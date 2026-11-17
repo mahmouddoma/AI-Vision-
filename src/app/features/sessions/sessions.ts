@@ -1,7 +1,10 @@
+import { LocalizedFormat } from '../../core/localized-format';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -10,17 +13,18 @@ import {
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, map, of, switchMap } from 'rxjs';
+import { gsap } from 'gsap';
 import { Api, UiError, apiError } from '../../core/api';
 import { AppContext } from '../../core/context';
 import { Camera, Page, Session } from '../../core/models';
-import { number, sourceTime, timestamp } from '../../core/format';
+import { TranslatePipe } from '../../core/i18n';
 import { Icon } from '../../ui/icon';
 import { Status } from '../../ui/status';
 import { StateView } from '../../ui/feedback';
 import { Pagination, Table } from '../../ui/table';
 @Component({
   selector: 'app-sessions',
-  imports: [RouterLink, Icon, Status, StateView, Pagination, Table],
+  imports: [RouterLink, Icon, Status, StateView, Pagination, Table, TranslatePipe],
   templateUrl: './sessions.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -28,6 +32,7 @@ export class Sessions {
   readonly context = inject(AppContext);
   private readonly api = inject(Api);
   private readonly destroy = inject(DestroyRef);
+  private readonly elementRef = inject(ElementRef);
   readonly source = signal('');
   readonly cameraId = signal('');
   readonly page = signal(1);
@@ -38,9 +43,9 @@ export class Sessions {
   readonly data = signal<Page<Session> | null>(null);
   readonly error = signal<UiError | null>(null);
   private readonly version = signal(0);
-  readonly date = timestamp;
-  readonly sourceTime = sourceTime;
-  readonly num = number;
+  readonly date = inject(LocalizedFormat).timestamp;
+  readonly sourceTime = inject(LocalizedFormat).sourceTime;
+  readonly num = inject(LocalizedFormat).number;
   private readonly query = computed(() => {
     this.version();
     return {
@@ -53,6 +58,9 @@ export class Sessions {
     };
   });
   constructor() {
+    afterNextRender(() => {
+      this.animateEntrance();
+    });
     toObservable(this.context.selectedSiteId)
       .pipe(
         switchMap((siteId) =>
@@ -98,5 +106,29 @@ export class Sessions {
   }
   reload(): void {
     this.version.update((value) => value + 1);
+  }
+
+  private animateEntrance(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const host = this.elementRef.nativeElement as HTMLElement;
+    const ctx = gsap.context(() => {
+      gsap.from('.page-heading', {
+        opacity: 0,
+        y: -10,
+        duration: 0.45,
+        ease: 'power2.out',
+      });
+      gsap.from('.surface', {
+        opacity: 0,
+        y: 12,
+        duration: 0.45,
+        ease: 'power2.out',
+        delay: 0.1,
+      });
+    }, host);
+
+    this.destroy.onDestroy(() => ctx.revert());
   }
 }

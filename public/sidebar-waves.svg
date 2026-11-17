@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 400" fill="none">
+  <defs>
+    <linearGradient id="waveGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#2dd4bf" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="waveGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0d9488" stop-opacity="0.75"/>
+      <stop offset="60%" stop-color="#14b8a6" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="waveWash" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.18"/>
+      <stop offset="50%" stop-color="#0d9488" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#087f7b" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background subtle glow wash -->
+  <path d="M-20 400 C 40 320, 100 350, 160 290 C 200 250, 230 270, 260 240 L 260 400 Z" fill="url(#waveWash)"/>
+  
+  <!-- Wave lines - crisp and clearly visible -->
+  <path d="M-20 380 C 55 355, 115 380, 175 325 C 215 290, 240 300, 260 280" stroke="url(#waveGrad)" stroke-width="2.2" fill="none" opacity="0.95"/>
+  <path d="M-20 345 C 50 320, 110 345, 170 290 C 210 255, 235 265, 260 245" stroke="url(#waveGrad)" stroke-width="2.0" fill="none" opacity="0.85"/>
+  <path d="M-20 310 C 45 285, 105 310, 165 255 C 205 220, 235 230, 260 210" stroke="url(#waveGrad)" stroke-width="1.8" fill="none" opacity="0.75"/>
+  <path d="M-20 275 C 40 250, 100 275, 160 220 C 200 185, 230 195, 260 175" stroke="url(#waveGrad2)" stroke-width="1.6" fill="none" opacity="0.6"/>
+  <path d="M-20 240 C 35 210, 95 235, 155 180 C 195 145, 225 155, 260 135" stroke="url(#waveGrad2)" stroke-width="1.4" fill="none" opacity="0.45"/>
+  <path d="M-20 205 C 30 170, 90 195, 150 140 C 190 105, 220 115, 260 95" stroke="url(#waveGrad2)" stroke-width="1.2" fill="none" opacity="0.3"/>
+</svg>

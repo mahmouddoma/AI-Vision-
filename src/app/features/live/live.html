@@ -1,51 +1,106 @@
 <header class="page-heading">
   <div>
-    <nav class="breadcrumbs" aria-label="Breadcrumb">
-      <a routerLink="/">Workspace</a><span>/ Live monitoring</span>
-      @if (cameraId()) {
-        <span>/ Camera detail</span>
-      }
-    </nav>
-    <h1>
-      {{ cameraId() ? feed().cameras[0]?.cameraName || 'Camera detail' : 'Live monitoring' }}
-    </h1>
-    <p>Latest persisted camera observations. Freshness tells you how current they are.</p>
+    @if (cameraId()) {
+      <nav class="breadcrumbs" [attr.aria-label]="'Breadcrumb' | t">
+        <a routerLink="/">{{ 'nav.workspace' | t }}</a><span>/</span
+        ><a routerLink="/live">{{ 'nav.live' | t }}</a
+        ><span>{{ '/ Camera detail' | t }}</span>
+      </nav>
+    }
+    <div class="page-title-group">
+      <div class="page-title-badge" aria-hidden="true">
+        <app-icon [name]="cameraId() ? 'camera' : 'live'" />
+      </div>
+      <div>
+        <h1>
+          {{
+            cameraId() ? feed().cameras[0]?.cameraName || ('Camera detail' | t) : ('live.title' | t)
+          }}
+        </h1>
+        <p>{{ 'live.subtitle' | t }}</p>
+      </div>
+    </div>
   </div>
-  <button class="button secondary" [disabled]="feed().loading" (click)="reload()">
-    <app-icon name="refresh" />Refresh
+  <button
+    class="button secondary header-refresh-btn"
+    [disabled]="feed().loading"
+    (click)="reload()"
+  >
+    <app-icon name="refresh" />{{ 'action.refresh' | t }}
   </button>
 </header>
 
 <div class="stack">
-  <div class="row row-cols-2 row-cols-xl-4 g-3">
-    <app-metric
-      label="Monitored zone occupancy"
-      [value]="num(occupancy())"
-      detail="Sum of known zones · not unique people"
-    /><app-metric
-      label="Cameras in this view"
-      [value]="feed().error ? 'N/A' : num(feed().cameras.length)"
-      detail="Registered cameras only"
-    /><app-metric
-      label="Connection mode"
-      [value]="realtime.mode().split(' · ')[0]"
-      [detail]="'REST sync every ' + context.api.config.refreshIntervalSeconds + 's'"
-    /><app-metric
-      label="Fresh cameras"
-      [value]="feed().error ? 'N/A' : num(feed().cameras.filter(isFresh).length)"
-      detail="According to backend freshness"
-    />
+  <div class="kpi-strip">
+    <div class="kpi-col">
+      <div class="kpi-head">
+        <div class="kpi-icon kpi-icon-blue"><app-icon name="zones" /></div>
+        <div class="kpi-title-block">
+          <span class="kpi-label">{{ 'metrics.occupancy' | t }}</span>
+          <span class="kpi-sub">{{ 'tab.occupancy' | t }}</span>
+        </div>
+      </div>
+      <strong class="kpi-num">{{ num(occupancy()) }}</strong>
+      <span class="kpi-desc">{{ 'metrics.sumKnownZones' | t }}</span>
+    </div>
+
+    <div class="kpi-sep"></div>
+
+    <div class="kpi-col">
+      <div class="kpi-head">
+        <div class="kpi-icon kpi-icon-teal"><app-icon name="camera" /></div>
+        <div class="kpi-title-block">
+          <span class="kpi-label">{{ 'metrics.camerasInView' | t }}</span>
+          <span class="kpi-sub">{{ 'overview.selectedSite' | t }}</span>
+        </div>
+      </div>
+      <strong class="kpi-num">{{ feed().error ? ('N/A' | t) : num(feed().cameras.length) }}</strong>
+      <span class="kpi-desc">{{ 'metrics.registeredCamerasOnly' | t }}</span>
+    </div>
+
+    <div class="kpi-sep"></div>
+
+    <div class="kpi-col">
+      <div class="kpi-head">
+        <div class="kpi-icon kpi-icon-purple"><app-icon name="live" /></div>
+        <div class="kpi-title-block">
+          <span class="kpi-label">{{ 'metrics.connectionMode' | t }}</span>
+          <span class="kpi-sub">{{ 'realtime' | t }}</span>
+        </div>
+      </div>
+      <strong class="kpi-num">{{ realtime.mode().split(' · ')[0] | t }}</strong>
+      <span class="kpi-desc"
+        >{{ 'REST sync every' | t }} {{ context.api.config.refreshIntervalSeconds
+        }}{{ 's' | t }}</span
+      >
+    </div>
+
+    <div class="kpi-sep"></div>
+
+    <div class="kpi-col">
+      <div class="kpi-head">
+        <div class="kpi-icon kpi-icon-green"><app-icon name="bolt" /></div>
+        <div class="kpi-title-block">
+          <span class="kpi-label">{{ 'metrics.freshCameras' | t }}</span>
+          <span class="kpi-sub">{{ 'active data' | t }}</span>
+        </div>
+      </div>
+      <strong class="kpi-num">{{
+        feed().error ? ('N/A' | t) : num(feed().cameras.filter(isFresh).length)
+      }}</strong>
+      <span class="kpi-desc">{{ 'metrics.accordingToFreshness' | t }}</span>
+    </div>
   </div>
 
   <section class="surface">
     <header class="section-heading">
       <div>
-        <h2>Camera observations</h2>
+        <h2>{{ 'metrics.cameraObservations' | t }}</h2>
         <p>
           {{
             feed().refreshedAt
-              ? 'Last REST sync ' + date(feed().refreshedAt, context.site()?.timeZoneId)
-              : 'Waiting for the first observation'
+              ? ('Last REST sync ' | t) + date(feed().refreshedAt, context.site()?.timeZoneId)
+              : ('Waiting for the first observation' | t)
           }}
         </p>
       </div>
@@ -53,30 +108,40 @@
 
     <div class="toolbar">
       <div class="field search-field">
-        <label for="live-search">Search cameras</label>
+        <label for="live-search">{{ 'metrics.searchCameras' | t }}</label>
         <div class="search-input">
           <app-icon name="search" /><input
             id="live-search"
-            placeholder="Search camera name..."
+            [placeholder]="'metrics.searchPlaceholder' | t"
             [value]="search()"
             (input)="search.set($any($event.target).value)"
           />
         </div>
       </div>
       <div class="field">
-        <label for="live-freshness">Freshness</label
-        ><select
+        <label for="live-freshness">{{ 'overview.freshnessCol' | t }}</label>
+        <select
           id="live-freshness"
           [value]="freshness()"
           (change)="freshness.set($any($event.target).value)"
         >
-          <option value="">All states</option>
-          <option value="Fresh">Fresh</option>
-          <option value="Stale">Stale</option>
-          <option value="NoRecentData">No recent data</option>
-          <option value="NeverReceived">Never received</option>
+          <option value="">{{ 'metrics.allStates' | t }}</option>
+          <option value="Fresh">{{ 'Fresh' | t }}</option>
+          <option value="Stale">{{ 'Stale' | t }}</option>
+          <option value="NoRecentData">{{ 'No recent data' | t }}</option>
+          <option value="NeverReceived">{{ 'Never received' | t }}</option>
         </select>
       </div>
+      @if (cameras().length > 1) {
+        <button
+          type="button"
+          class="button secondary button-sm toggle-all-btn"
+          (click)="toggleAll()"
+        >
+          <app-icon [name]="allCollapsed() ? 'down' : 'right'" />
+          <span>{{ allCollapsed() ? ('live.expandAll' | t) : ('live.collapseAll' | t) }}</span>
+        </button>
+      }
     </div>
 
     @if (context.sitesError() && !cameraId()) {
@@ -88,159 +153,242 @@
     } @else if (!context.selectedSiteId() && !cameraId()) {
       <app-state
         icon="building"
-        title="Start with a site"
-        message="Register a site, then add cameras and zones to begin monitoring."
-        ><a class="button" routerLink="/sites">Manage sites</a></app-state
+        [title]="'Start with a site' | t"
+        [message]="'Register a site, then add cameras and zones to begin monitoring.' | t"
+        ><a class="button" routerLink="/sites">{{ 'Manage sites' | t }}</a></app-state
       >
     } @else if (!feed().cameras.length) {
       <app-state
         icon="camera"
-        title="No cameras registered"
-        message="Add a camera to this site. Live readings appear after registered zones receive analytics."
-        ><a class="button" routerLink="/cameras">Manage cameras</a></app-state
+        [title]="'No cameras registered' | t"
+        [message]="
+          'Add a camera to this site. Live readings appear after registered zones receive analytics.'
+            | t
+        "
+        ><a class="button" routerLink="/cameras">{{ 'Manage cameras' | t }}</a></app-state
       >
     } @else {
       @if (feed().error) {
         <div class="notice warning" role="alert">
           <app-icon name="warning" />
           <p>
-            Connection lost. Showing the last known snapshot; freshness may have changed.
-            {{ feed().error?.message }}
+            {{
+              'Connection lost. Showing the last known snapshot; freshness may have changed.' | t
+            }}
+            {{ i18n.errorMessage(feed().error!) }}
           </p>
         </div>
       }
       @if (!cameras().length) {
-        <app-state title="No matching cameras" message="Try another name or freshness filter." />
+        <app-state
+          [title]="'No matching cameras' | t"
+          [message]="'Try another name or freshness filter.' | t"
+        />
+      } @else {
+        <div
+          class="table-scroll"
+          role="region"
+          [attr.aria-label]="'Camera observations hierarchical table' | t"
+          tabindex="0"
+        >
+          <table class="live-table">
+            <thead>
+              <tr>
+                <th scope="col" class="th-main">{{ 'live.cameraZone' | t }}</th>
+                <th scope="col">{{ 'sessions.statusCol' | t }}</th>
+                <th scope="col" class="cell-r">{{ 'tab.occupancy' | t }}</th>
+                <th scope="col" class="cell-r">{{ 'metrics.arrivalsDepartures' | t }}</th>
+                <th scope="col" class="cell-r">{{ 'metrics.gateInOut' | t }}</th>
+                <th scope="col" class="cell-r">{{ 'metrics.capacityUtilization' | t }}</th>
+                <th scope="col" class="cell-r">{{ 'metrics.dwell' | t }}</th>
+                <th scope="col">{{ 'metrics.latestZoneUpdate' | t }}</th>
+                <th scope="col" class="cell-actions-th">{{ 'sites.actionsCol' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (camera of cameras(); track camera.cameraId) {
+                <!-- Camera Row -->
+                <tr class="camera-row" [class.collapsed]="isCollapsed(camera.cameraId)">
+                  <td class="td-main">
+                    <div class="camera-cell">
+                      <button
+                        type="button"
+                        class="tree-toggle-btn"
+                        [attr.aria-expanded]="!isCollapsed(camera.cameraId)"
+                        (click)="toggleCamera(camera.cameraId)"
+                        [title]="
+                          isCollapsed(camera.cameraId)
+                            ? ('Expand zones' | t)
+                            : ('Collapse zones' | t)
+                        "
+                      >
+                        <app-icon [name]="isCollapsed(camera.cameraId) ? 'right' : 'down'" />
+                      </button>
+                      <span class="camera-icon-badge"><app-icon name="camera" /></span>
+                      <div class="camera-info">
+                        <a class="camera-name-link" [routerLink]="['/live', camera.cameraId]">{{
+                          camera.cameraName
+                        }}</a>
+                        <span class="camera-subtext">
+                          <span>{{ 'ID:' | t }} {{ camera.externalCameraId }}</span>
+                          <span>&bull;</span>
+                          <span>{{ (camera.sourceType | t) || ('Source unknown' | t) }}</span>
+                          <span>&bull;</span>
+                          <span>{{ num(camera.processingFps, 1) }} {{ 'fps' | t }}</span>
+                          <span>&bull;</span>
+                          <span>{{ num(camera.staffCount) }} {{ 'staff' | t }}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <app-status [value]="camera.isActive ? camera.dataFreshness : 'Inactive'" />
+                  </td>
+                  <td class="cell-r">
+                    <span class="camera-zone-count">
+                      {{ camera.zones.length }}
+                      {{ camera.zones.length === 1 ? ('zone' | t) : ('zones' | t) }}
+                    </span>
+                  </td>
+                  <td class="cell-r text-muted">&mdash;</td>
+                  <td class="cell-r text-muted">&mdash;</td>
+                  <td class="cell-r text-muted">&mdash;</td>
+                  <td class="cell-r text-muted">&mdash;</td>
+                  <td class="cell-time">
+                    {{ date(camera.lastReceivedAtUtc, context.site()?.timeZoneId) }}
+                  </td>
+                  <td class="cell-actions-td">
+                    <a
+                      class="button secondary button-sm"
+                      [routerLink]="['/cameras', camera.cameraId, 'zones']"
+                    >
+                      <app-icon name="zones" />{{ 'Manage zones' | t }}
+                    </a>
+                  </td>
+                </tr>
+
+                @if (!isCollapsed(camera.cameraId)) {
+                  @if (camera.dataFreshness === 'NeverReceived') {
+                    <tr class="table-notice-row">
+                      <td colspan="9">
+                        <div class="table-notice warning">
+                          <app-icon name="info" />
+                          <span>{{
+                            'Never received analytics. Register external IDs and verify publisher topic.'
+                              | t
+                          }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                  @if (camera.sourceType === 'video_file') {
+                    <tr class="table-notice-row">
+                      <td colspan="9">
+                        <div class="table-notice info">
+                          <app-icon name="film" />
+                          <span>{{
+                            'Recorded-video observations. Receipt time is not visitor event time.'
+                              | t
+                          }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+
+                  <!-- Zone Sub-Rows -->
+                  @for (zone of camera.zones; track zone.zoneId) {
+                    <tr class="zone-row">
+                      <td class="td-main">
+                        <div class="zone-cell">
+                          <span class="tree-line" aria-hidden="true"></span>
+                          <span class="zone-icon-badge"><app-icon name="location" /></span>
+                          <button type="button" class="zone-trigger" (click)="inspect(zone)">
+                            <span class="zone-name">{{ zone.zoneName }}</span>
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="zone-status-group">
+                          @if (zone.previousSession) {
+                            <app-status value="Previous session" />
+                          }
+                          <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
+                          @if (zone.capacityStatus) {
+                            <app-status [value]="zone.capacityStatus" />
+                          }
+                        </div>
+                      </td>
+                      <td class="cell-r">
+                        <span class="occupancy-val">{{ num(zone.occupancy) }}</span>
+                      </td>
+                      <td class="cell-r">
+                        <span class="tabular-val">{{ num(zone.zoneArrivals) }}</span>
+                        <span class="val-sep">/</span>
+                        <span class="tabular-sub">{{ num(zone.zoneDepartures) }}</span>
+                      </td>
+                      <td class="cell-r">
+                        <span class="tabular-val">{{ num(zone.entry) }}</span>
+                        <span class="val-sep">/</span>
+                        <span class="tabular-sub">{{ num(zone.exit) }}</span>
+                      </td>
+                      <td class="cell-r">
+                        <span class="util-val" [class.util-configured]="zone.capacity != null">
+                          {{
+                            zone.capacity == null
+                              ? ('Not configured' | t)
+                              : num(zone.utilizationPercent, 1) +
+                                (zone.utilizationPercent == null ? '' : '%')
+                          }}
+                        </span>
+                      </td>
+                      <td class="cell-r">
+                        <span class="tabular-val">{{
+                          duration(zone.reportedAverageDwellSeconds)
+                        }}</span>
+                        <span class="val-sep">/</span>
+                        <span class="tabular-sub">{{
+                          duration(zone.longestActiveDwellSeconds)
+                        }}</span>
+                      </td>
+                      <td class="cell-time">
+                        {{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}
+                      </td>
+                      <td class="cell-actions-td">
+                        <button
+                          type="button"
+                          class="button secondary button-sm inspect-btn"
+                          (click)="inspect(zone)"
+                        >
+                          {{ 'Inspect' | t }} <app-icon name="right" />
+                        </button>
+                      </td>
+                    </tr>
+                  }
+
+                  @if (!camera.zones.length) {
+                    <tr class="zone-row zone-empty-row">
+                      <td colspan="9">
+                        <div class="zone-cell empty-cell">
+                          <span class="tree-line" aria-hidden="true"></span>
+                          <span class="text-muted">{{
+                            'No zones registered for this camera.' | t
+                          }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              }
+            </tbody>
+          </table>
+        </div>
       }
-      <div class="zone-list">
-        @for (camera of cameras(); track camera.cameraId) {
-          <article class="zone-row">
-            <div class="section-heading">
-              <div>
-                <h3>
-                  <app-icon name="camera" />
-                  <a [routerLink]="['/live', camera.cameraId]">{{ camera.cameraName }}</a>
-                </h3>
-                <p>
-                  External ID {{ camera.externalCameraId }} ·
-                  {{ camera.sourceType || 'Source unknown' }} ·
-                  {{ camera.analyticsStatus || 'No session' }}
-                </p>
-              </div>
-              <div class="button-group">
-                <app-status [value]="camera.isActive ? camera.dataFreshness : 'Inactive'" />
-
-                <a class="button quiet" [routerLink]="['/cameras', camera.cameraId, 'zones']"
-                  >Manage zones</a
-                >
-              </div>
-            </div>
-            <dl class="detail-list">
-              <div>
-                <dt>Latest received</dt>
-                <dd [title]="camera.lastReceivedAtUtc || ''">
-                  {{ date(camera.lastReceivedAtUtc, context.site()?.timeZoneId) }}
-                </dd>
-              </div>
-              <div>
-                <dt>Processing / staff</dt>
-                <dd>{{ num(camera.processingFps, 1) }} fps · {{ num(camera.staffCount) }} staff</dd>
-              </div>
-              <div>
-                <dt>Sequence / state version</dt>
-                <dd>{{ num(camera.lastSequence) }} / {{ num(camera.stateVersion) }}</dd>
-              </div>
-              <div>
-                <dt>Session</dt>
-                <dd>{{ camera.sessionId || 'No session yet' }}</dd>
-              </div>
-            </dl>
-            @if (camera.dataFreshness === 'NeverReceived') {
-              <p class="report-note">
-                Never received analytics. Register the correct external IDs and verify the publisher
-                topic.
-              </p>
-            }
-            @if (camera.sourceType === 'video_file') {
-              <p class="report-note">
-                Recorded-video observations. Receipt time is not the time a customer visited the
-                venue.
-              </p>
-            }
-            @if (!camera.zones.length) {
-              <p class="report-note">No registered zones to display.</p>
-            }
-            @for (zone of camera.zones; track zone.zoneId) {
-              <section class="zone-row">
-                <div class="link-row">
-                  <button class="button quiet" (click)="inspect(zone)">
-                    {{ zone.zoneName }} <app-icon name="right" />
-                  </button>
-                  <div class="button-group">
-                    @if (zone.previousSession) {
-                      <app-status value="Previous session" />
-                    }
-                    <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
-                    @if (zone.capacityStatus) {
-                      <app-status [value]="zone.capacityStatus" />
-                    }
-                  </div>
-                </div>
-                <dl class="detail-list">
-                  <div>
-                    <dt>Occupancy</dt>
-                    <dd>{{ num(zone.occupancy) }}</dd>
-                  </div>
-                  <div>
-                    <dt>Arrivals / departures · cumulative</dt>
-                    <dd>{{ num(zone.zoneArrivals) }} / {{ num(zone.zoneDepartures) }}</dd>
-                  </div>
-                  <div>
-                    <dt>Gate entries / exits · cumulative</dt>
-                    <dd>{{ num(zone.entry) }} / {{ num(zone.exit) }}</dd>
-                  </div>
-                  <div>
-                    <dt>Capacity utilization</dt>
-                    <dd>
-                      {{
-                        zone.capacity == null
-                          ? 'Not configured'
-                          : num(zone.utilizationPercent, 1) +
-                            (zone.utilizationPercent == null ? '' : '%')
-                      }}
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt>Wrong-way in / out</dt>
-                    <dd>{{ num(zone.wrongWayIn) }} / {{ num(zone.wrongWayOut) }}</dd>
-                  </div>
-                  <div>
-                    <dt>Active tracks</dt>
-                    <dd>{{ num(zone.activeVisitorsCount) }}</dd>
-                  </div>
-                  <div>
-                    <dt>Reported dwell / longest active</dt>
-                    <dd>
-                      {{ duration(zone.reportedAverageDwellSeconds) }} /
-                      {{ duration(zone.longestActiveDwellSeconds) }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Latest zone update</dt>
-                    <dd>{{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}</dd>
-                  </div>
-                </dl>
-              </section>
-            }
-          </article>
-        }
-      </div>
     }
   </section>
 </div>
+
 @if (drawerOpen()) {
-  <app-dialog title="Zone observation" (closed)="drawerOpen.set(false)">
+  <app-dialog [title]="'Zone observation' | t" (closed)="drawerOpen.set(false)">
     @if (zoneLoading() || zoneError()) {
       <app-state [loading]="zoneLoading()" [error]="zoneError()" (retry)="inspect(zone()!)" />
     } @else if (zone(); as zone) {
@@ -249,39 +397,41 @@
         <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
         <dl class="detail-list">
           <div>
-            <dt>External zone ID</dt>
+            <dt>{{ 'External zone ID' | t }}</dt>
             <dd>{{ zone.externalZoneId }}</dd>
           </div>
           <div>
-            <dt>Internal zone ID</dt>
+            <dt>{{ 'Internal zone ID' | t }}</dt>
             <dd>{{ zone.zoneId }}</dd>
           </div>
           <div>
-            <dt>Session</dt>
-            <dd>{{ zone.sessionId || 'N/A' }}</dd>
+            <dt>{{ 'Session' | t }}</dt>
+            <dd>{{ zone.sessionId || ('N/A' | t) }}</dd>
           </div>
           <div>
-            <dt>Sequence / state version</dt>
+            <dt>{{ 'Sequence / state version' | t }}</dt>
             <dd>{{ num(zone.sequence) }} / {{ num(zone.stateVersion) }}</dd>
           </div>
           <div>
-            <dt>Occupancy / capacity</dt>
+            <dt>{{ 'Occupancy / capacity' | t }}</dt>
             <dd>{{ num(zone.occupancy) }} / {{ num(zone.capacity) }}</dd>
           </div>
           <div>
-            <dt>Last updated</dt>
+            <dt>{{ 'Last updated' | t }}</dt>
             <dd>{{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}</dd>
           </div>
         </dl>
         <p class="report-note">
-          Live counters are cumulative snapshots. Occupancy is directly reported and may differ from
-          arrivals minus departures.
+          {{
+            'Live counters are cumulative snapshots. Occupancy is directly reported and may differ from arrivals minus departures.'
+              | t
+          }}
         </p>
         <a
           class="button"
           routerLink="/analytics"
           [queryParams]="{ cameraId: zone.cameraId, zoneId: zone.zoneId }"
-          >Open zone analytics <app-icon name="arrow"
+          >{{ 'Open zone analytics' | t }} <app-icon name="arrow"
         /></a>
       </div>
     }

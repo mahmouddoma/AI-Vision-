@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { TranslatePipe } from '../core/i18n';
 import { Icon } from './icon';
 @Component({
   selector: 'app-table',
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<div class="table-scroll" role="region" [attr.aria-label]="label()" tabindex="0">
+  template: `<div class="table-scroll" role="region" [attr.aria-label]="label() | t" tabindex="0">
     <ng-content />
   </div>`,
 })
@@ -12,14 +14,18 @@ export class Table {
 }
 @Component({
   selector: 'app-pagination',
-  imports: [Icon],
+  imports: [Icon, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<nav class="pagination" aria-label="Pagination">
-    <span>{{ total() }} records · Page {{ page() }} of {{ pages() || 1 }}</span>
+  template: `<nav class="pagination" [attr.aria-label]="'Pagination' | t">
+    <span
+      >{{ total() }} {{ 'pagination.records' | t }} · {{ 'pagination.page' | t }} {{ page() }}
+      {{ 'pagination.of' | t }} {{ pages() || 1 }}</span
+    >
     <div class="button-group">
       <button
         class="icon-button"
-        aria-label="Previous page"
+        [attr.aria-label]="'pagination.prev' | t"
+        [title]="'pagination.prev' | t"
         [disabled]="busy() || page() <= 1"
         (click)="changed.emit(page() - 1)"
       >
@@ -27,7 +33,8 @@ export class Table {
       </button>
       <button
         class="icon-button"
-        aria-label="Next page"
+        [attr.aria-label]="'pagination.next' | t"
+        [title]="'pagination.next' | t"
         [disabled]="busy() || page() >= pages()"
         (click)="changed.emit(page() + 1)"
       >

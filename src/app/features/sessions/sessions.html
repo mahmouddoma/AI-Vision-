@@ -1,112 +1,159 @@
 <header class="page-heading">
-  <div>
-    <h1>Sessions</h1>
-    <p>Explore live observation sessions and recorded-video analysis.</p>
+  <div class="page-title-group">
+    <div class="page-title-badge" aria-hidden="true">
+      <app-icon name="film" />
+    </div>
+    <div>
+      <h1>{{ 'sessions.title' | t }}</h1>
+      <p>{{ 'sessions.subtitle' | t }}</p>
+    </div>
   </div>
-  <button class="button secondary" [disabled]="loading()" (click)="reload()">
-    <app-icon name="refresh" />Refresh
+  <button class="button secondary header-refresh-btn" [disabled]="loading()" (click)="reload()">
+    <app-icon name="refresh" />{{ 'action.refresh' | t }}
   </button>
 </header>
 <section class="surface">
   <form class="toolbar" (submit)="$event.preventDefault(); apply()">
     <div class="field search-field">
-      <label for="session-search">Search sessions</label>
+      <label for="session-search">{{ 'sessions.searchLabel' | t }}</label>
       <div class="search-input">
         <app-icon name="search" /><input
           id="session-search"
-          placeholder="Source name or session ID..."
+          [placeholder]="'sessions.searchPlaceholder' | t"
           [value]="draft()"
           (input)="draft.set($any($event.target).value)"
         />
       </div>
     </div>
     <div class="field">
-      <label for="session-source">Source</label
-      ><select
+      <label for="session-source">{{ 'filters.dataSource' | t }}</label><select
         id="session-source"
         [value]="source()"
         (change)="source.set($any($event.target).value); page.set(1)"
       >
-        <option value="">All sources</option>
-        <option value="live">Live</option>
-        <option value="video_file">Recorded video</option>
+        <option value="">{{ 'filters.allSources' | t }}</option>
+        <option value="live">{{ 'filters.liveObservations' | t }}</option>
+        <option value="video_file">{{ 'filters.recordedVideo' | t }}</option>
       </select>
     </div>
     <div class="field">
-      <label for="session-camera">Camera</label
-      ><select
+      <label for="session-camera">{{ 'filters.camera' | t }}</label><select
         id="session-camera"
         [value]="cameraId()"
         (change)="cameraId.set($any($event.target).value); page.set(1)"
       >
-        <option value="">All cameras</option>
+        <option value="">{{ 'filters.allCameras' | t }}</option>
         @for (camera of cameras(); track camera.id) {
           <option [value]="camera.id">{{ camera.name }}</option>
         }
       </select>
     </div>
-    <button class="button secondary" type="submit">Search</button>
+    <button class="button secondary" type="submit">{{ 'action.search' | t }}</button>
   </form>
   @if (loading() || error()) {
     <app-state [loading]="loading()" [error]="error()" (retry)="reload()" />
   } @else if (!data()?.items?.length) {
     <app-state
       icon="film"
-      title="No sessions found"
-      message="Sessions appear after analytics messages are ingested. Try changing your search or source filter."
+      [title]="'sessions.noSessions' | t"
+      [message]="'sessions.noSessionsDesc' | t"
     />
   } @else {
-    <app-table label="Analytics sessions"
+    <app-table [label]="'Analytics sessions' | t"
       ><table>
         <caption class="visually-hidden">
-          Analytics sessions and ingestion metadata
+          {{
+            'Analytics sessions and ingestion metadata' | t
+          }}
         </caption>
         <thead>
           <tr>
-            <th scope="col">Session / source</th>
-            <th scope="col">Camera</th>
-            <th scope="col">Status</th>
-            <th scope="col">Sequence range</th>
-            <th scope="col">Video positions</th>
-            <th scope="col">Started / last received</th>
-            <th scope="col">Ended</th>
+            <th scope="col">{{ 'sessions.sessionSource' | t }}</th>
+            <th scope="col">{{ 'sessions.cameraCol' | t }}</th>
+            <th scope="col">{{ 'sessions.statusCol' | t }}</th>
+            <th scope="col">{{ 'sessions.sequenceRange' | t }}</th>
+            <th scope="col">{{ 'sessions.videoPositions' | t }}</th>
+            <th scope="col">{{ 'sessions.startedLastReceived' | t }}</th>
+            <th scope="col">{{ 'sessions.endedCol' | t }}</th>
           </tr>
         </thead>
         <tbody>
           @for (session of data()!.items; track session.id) {
             <tr>
               <th scope="row">
-                <a [routerLink]="['/sessions', session.id]">{{
-                  session.sourceName || session.externalSessionId
-                }}</a><span class="cell-sub"
-                  >{{ session.externalSessionId }} ·
-                  {{ session.sourceType === 'video_file' ? 'Recorded video' : 'Live' }}</span
-                >
+                <div class="table-entity-cell">
+                  <span
+                    class="entity-badge"
+                    [class.badge-video]="session.sourceType === 'video_file'"
+                  >
+                    <app-icon [name]="session.sourceType === 'video_file' ? 'film' : 'live'" />
+                  </span>
+                  <div class="entity-info">
+                    <a class="entity-link" [routerLink]="['/sessions', session.id]">{{
+                      session.sourceName || session.externalSessionId
+                    }}</a>
+                    <span class="cell-sub">
+                      <code class="session-code" [title]="session.externalSessionId">{{
+                        session.externalSessionId
+                      }}</code>
+                      <span>&bull;</span>
+                      <span>{{
+                        session.sourceType === 'video_file'
+                          ? ('filters.recordedVideo' | t)
+                          : ('filters.liveObservations' | t)
+                      }}</span>
+                    </span>
+                  </div>
+                </div>
               </th>
-              <td>{{ session.cameraName }}</td>
+              <td>
+                <div class="camera-table-ref">
+                  <app-icon name="camera" class="text-muted" />
+                  <span>{{ session.cameraName }}</span>
+                </div>
+              </td>
               <td><app-status [value]="session.status" /></td>
-              <td>{{ num(session.firstSequence) }} · {{ num(session.lastSequence) }}</td>
               <td>
-                {{
-                  session.sourceType === 'video_file'
-                    ? sourceTime(session.firstSourceTimeMs) +
-                      ' · ' +
-                      sourceTime(session.lastSourceTimeMs)
-                    : 'Not applicable'
-                }}
+                <div class="range-metric">
+                  <span class="tabular font-semibold">{{ num(session.firstSequence) }}</span>
+                  <span class="range-arrow">&rarr;</span>
+                  <span class="tabular font-semibold">{{ num(session.lastSequence) }}</span>
+                </div>
               </td>
               <td>
-                {{ date(session.startedAtUtc, context.site()?.timeZoneId)
-                }}<span class="cell-sub">{{
-                  date(session.lastReceivedAtUtc, context.site()?.timeZoneId)
-                }}</span>
+                @if (session.sourceType === 'video_file') {
+                  <div class="range-metric position-metric">
+                    <span class="tabular">{{ sourceTime(session.firstSourceTimeMs) }}</span>
+                    <span class="range-arrow">&rarr;</span>
+                    <span class="tabular">{{ sourceTime(session.lastSourceTimeMs) }}</span>
+                  </div>
+                } @else {
+                  <span class="text-muted">&mdash;</span>
+                }
               </td>
               <td>
-                {{
-                  session.endedAtUtc
-                    ? date(session.endedAtUtc, context.site()?.timeZoneId)
-                    : 'Not ended'
-                }}
+                <div class="date-cell">
+                  <span class="tabular date-primary">{{
+                    date(session.startedAtUtc, context.site()?.timeZoneId)
+                  }}</span>
+                  <span class="cell-sub date-secondary">
+                    <span class="date-prefix">{{ 'sessions.last' | t }}</span>
+                    <span class="tabular">{{
+                      date(session.lastReceivedAtUtc, context.site()?.timeZoneId)
+                    }}</span>
+                  </span>
+                </div>
+              </td>
+              <td>
+                @if (session.endedAtUtc) {
+                  <span class="tabular date-primary">{{
+                    date(session.endedAtUtc, context.site()?.timeZoneId)
+                  }}</span>
+                } @else {
+                  <span class="badge-running"
+                    ><span class="pulse-dot"></span>{{ 'status.active' | t }}</span
+                  >
+                }
               </td>
             </tr>
           }
@@ -124,7 +171,6 @@
     />
   }
   <p class="report-note">
-    An ended session is a completed observation period, not a camera malfunction. Recorded-video
-    positions are elapsed time within the source file.
+    {{ 'sessions.note' | t }}
   </p>
 </section>

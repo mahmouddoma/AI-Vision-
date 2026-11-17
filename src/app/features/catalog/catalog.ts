@@ -1,7 +1,10 @@
+import { LocalizedFormat } from '../../core/localized-format';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -19,15 +22,16 @@ import {
 } from '@angular/forms';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, finalize, map, of, switchMap } from 'rxjs';
+import { gsap } from 'gsap';
 import { Api, UiError, apiError } from '../../core/api';
 import { AppContext } from '../../core/context';
 import { Camera, CameraWrite, Page, Site, SiteWrite, Zone, ZoneWrite } from '../../core/models';
-import { number, timestamp } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Status } from '../../ui/status';
 import { StateView } from '../../ui/feedback';
 import { Dialog } from '../../ui/dialog';
 import { Table, Pagination } from '../../ui/table';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 
 type Kind = 'sites' | 'cameras' | 'zones';
 type Row = Site | Camera | Zone;
@@ -48,6 +52,7 @@ export const topicSegment = (control: AbstractControl): ValidationErrors | null 
     Table,
     Pagination,
     KeyValuePipe,
+    TranslatePipe,
   ],
   templateUrl: './catalog.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,10 +61,17 @@ export class Catalog {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(Api);
   private readonly destroy = inject(DestroyRef);
+  private readonly elementRef = inject(ElementRef);
   readonly context = inject(AppContext);
+  readonly i18n = inject(I18nService);
+  readonly successName = signal('');
+  readonly errorMessage = (error: UiError) => this.i18n.errorMessage(error);
+  readonly fieldMessage = (messages: string[]) =>
+    this.i18n.currentLang() === 'ar'
+      ? this.i18n.t('Check the highlighted fields or adjust the report filters.')
+      : messages.join(' ');
   readonly kind = this.route.snapshot.data['kind'] as Kind;
-  readonly title =
-    this.kind === 'sites' ? 'Sites' : this.kind === 'cameras' ? 'Cameras & zones' : 'Zones';
+  readonly title = this.kind === 'sites' ? 'Sites' : this.kind === 'cameras' ? 'Cameras' : 'Zones';
   readonly singular = this.kind === 'sites' ? 'site' : this.kind === 'cameras' ? 'camera' : 'zone';
   private readonly params = toSignal(this.route.paramMap, {
     initialValue: this.route.snapshot.paramMap,
@@ -78,8 +90,8 @@ export class Catalog {
   readonly current = signal<Row | null>(null);
   readonly saving = signal(false);
   readonly formError = signal<UiError | null>(null);
-  readonly num = number;
-  readonly date = timestamp;
+  readonly num = inject(LocalizedFormat).number;
+  readonly date = inject(LocalizedFormat).timestamp;
   readonly form = new FormGroup({
     name: new FormControl('', {
       nonNullable: true,
@@ -108,6 +120,9 @@ export class Catalog {
     };
   });
   constructor() {
+    afterNextRender(() => {
+      this.animateEntrance();
+    });
     const c = this.form.controls;
     if (this.kind === 'sites') {
       c.code.setValidators(requiredText);
@@ -288,11 +303,36 @@ export class Catalog {
       .subscribe({
         next: () => {
           this.dialogMode.set(null);
-          this.success.set(`${row.name} ${row.isActive ? 'deactivated' : 'activated'}.`);
+          this.successName.set(row.name);
+          this.success.set(row.isActive ? 'catalog.deactivated' : 'catalog.activated');
           this.reload();
           this.context.refreshSites();
         },
         error: (error) => this.formError.set(apiError(error)),
       });
+  }
+
+  private animateEntrance(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const host = this.elementRef.nativeElement as HTMLElement;
+    const ctx = gsap.context(() => {
+      gsap.from('.page-heading', {
+        opacity: 0,
+        y: -10,
+        duration: 0.45,
+        ease: 'power2.out',
+      });
+      gsap.from('.surface', {
+        opacity: 0,
+        y: 12,
+        duration: 0.45,
+        ease: 'power2.out',
+        delay: 0.1,
+      });
+    }, host);
+
+    this.destroy.onDestroy(() => ctx.revert());
   }
 }

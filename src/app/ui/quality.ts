@@ -1,31 +1,35 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { LocalizedFormat } from '../core/localized-format';
+import { TranslatePipe } from '../core/i18n';
+import { ChangeDetectionStrategy, Component, input, inject } from '@angular/core';
 import { DataQuality } from '../core/models';
-import { number } from '../core/format';
 import { Status } from './status';
 @Component({
   selector: 'app-quality',
-  imports: [Status],
+  imports: [TranslatePipe, Status],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `@if (value(); as quality) {
       <details class="quality">
         <summary>
           <app-status [value]="quality.kind" /><span
-            >{{ num(quality.coveragePercent, 1) }}% coverage</span
+            >{{ num(quality.coveragePercent, 1) }}{{ '% coverage' | t }}</span
           >
         </summary>
         <div class="quality-details">
           <span
-            >{{ num(quality.sampleCount) }} samples ·
-            {{ num(quality.observationDurationSeconds, 1) }}s observed</span
+            >{{ num(quality.sampleCount) }} {{ 'samples ·' | t }}
+            {{ num(quality.observationDurationSeconds, 1) }}{{ 's observed' | t }}</span
           >
           <span
-            >{{ quality.counterResetCount }} counter resets · {{ quality.baselineCount }} baselines
-            · {{ quality.gapCount }} gaps</span
+            >{{ quality.counterResetCount }} {{ 'counter resets ·' | t }}
+            {{ quality.baselineCount }} {{ 'baselines ·' | t }} {{ quality.gapCount }}
+            {{ 'gaps' | t }}</span
           >
           @if (quality.coveragePercent < 100) {
             <p>
-              Partially observed period. Missing observations are unknown, not zero; comparisons may
-              be incomplete.
+              {{
+                'Partially observed period. Missing observations are unknown, not zero; comparisons may be incomplete.'
+                  | t
+              }}
             </p>
           }
         </div>
@@ -36,5 +40,5 @@ import { Status } from './status';
 })
 export class Quality {
   readonly value = input<DataQuality | null | undefined>();
-  readonly num = number;
+  readonly num = inject(LocalizedFormat).number;
 }

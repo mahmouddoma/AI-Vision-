@@ -1,3 +1,4 @@
+import { TranslatePipe } from '../core/i18n';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { Icon, IconName } from './icon';
 const states: Record<string, [string, string, IconName]> = {
@@ -24,10 +25,10 @@ const states: Record<string, [string, string, IconName]> = {
 };
 @Component({
   selector: 'app-status',
-  imports: [Icon],
+  imports: [TranslatePipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<span class="status" [attr.data-tone]="state()[1]"
-    ><app-icon [name]="state()[2]" />{{ state()[0] }}</span
+    ><app-icon [name]="state()[2]" />{{ state()[0] | t }}</span
   >`,
 })
 export class Status {

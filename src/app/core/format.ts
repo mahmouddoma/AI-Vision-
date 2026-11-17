@@ -13,13 +13,13 @@ export function duration(seconds: number | null | undefined): string {
 export function sourceTime(ms: number | null | undefined): string {
   return ms == null ? 'N/A' : duration(ms / 1000);
 }
-export function timestamp(value: string | null | undefined, timeZone = 'UTC'): string {
+export function timestamp(value: string | null | undefined, timeZone = 'UTC', lang = 'en'): string {
   if (!value) return 'Never received';
   const date = new Date(/(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`);
   if (!Number.isFinite(date.getTime())) return 'N/A';
   try {
     return (
-      new Intl.DateTimeFormat('en-GB', {
+      new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-GB', {
         dateStyle: 'medium',
         timeStyle: 'short',
         timeZone,

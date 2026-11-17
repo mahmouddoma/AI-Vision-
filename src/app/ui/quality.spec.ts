@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { Quality } from './quality';
 import { Chart } from './chart';
+import { I18nService } from '../core/i18n';
 describe('quality and accessible chart', () => {
+  beforeEach(() => TestBed.inject(I18nService).setLang('en'));
   it('labels estimates and partial coverage with metadata', () => {
     const fixture = TestBed.createComponent(Quality);
     fixture.componentRef.setInput('value', {

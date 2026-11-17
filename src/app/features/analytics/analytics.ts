@@ -1,7 +1,10 @@
+import { LocalizedFormat } from '../../core/localized-format';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -9,6 +12,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { gsap } from 'gsap';
 import { Api, UiError, apiError } from '../../core/api';
 import { AppContext } from '../../core/context';
 import {
@@ -25,15 +29,14 @@ import {
   ZonePeriod,
   ZoneResult,
 } from '../../core/models';
-import { duration, number, sourceTime, timestamp } from '../../core/format';
 import { Chart } from '../../ui/chart';
-import { zonePoints, staffPoints } from '../../core/report-presenter';
 import { Dialog } from '../../ui/dialog';
-import { StateView, Metric } from '../../ui/feedback';
-import { Icon } from '../../ui/icon';
+import { StateView } from '../../ui/feedback';
+import { Icon, IconName } from '../../ui/icon';
 import { Quality } from '../../ui/quality';
 import { Status } from '../../ui/status';
 import { Table } from '../../ui/table';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 import { ReportFilters } from './report-filters';
 
 type Tab = 'rankings' | 'occupancy' | 'traffic' | 'dwell' | 'wrong-way' | 'staff';
@@ -50,22 +53,24 @@ interface AnalyticsData {
 }
 @Component({
   selector: 'app-analytics',
-  imports: [ReportFilters, Chart, Dialog, StateView, Metric, Icon, Quality, Status, Table],
+  imports: [ReportFilters, Chart, Dialog, StateView, Icon, Quality, Status, Table, TranslatePipe],
   templateUrl: './analytics.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Analytics {
+  private readonly i18n = inject(I18nService);
   private readonly api = inject(Api);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
+  private readonly elementRef = inject(ElementRef);
   readonly context = inject(AppContext);
-  readonly tabs: { key: Tab; label: string }[] = [
-    { key: 'rankings', label: 'Zone rankings' },
-    { key: 'occupancy', label: 'Occupancy' },
-    { key: 'traffic', label: 'Traffic' },
-    { key: 'dwell', label: 'Dwell time' },
-    { key: 'wrong-way', label: 'Wrong-way' },
-    { key: 'staff', label: 'Staff' },
+  readonly tabs: { key: Tab; translationKey: string; icon: IconName }[] = [
+    { key: 'rankings', translationKey: 'tab.zoneRankings', icon: 'zones' },
+    { key: 'occupancy', translationKey: 'tab.occupancy', icon: 'users' },
+    { key: 'traffic', translationKey: 'tab.traffic', icon: 'chart' },
+    { key: 'dwell', translationKey: 'tab.dwellTime', icon: 'stopwatch' },
+    { key: 'wrong-way', translationKey: 'tab.wrongWay', icon: 'warning' },
+    { key: 'staff', translationKey: 'tab.staff', icon: 'user' },
   ];
   readonly tab = signal<Tab>('rankings');
   readonly filter = signal<ReportFilter | null>(null);
@@ -123,11 +128,11 @@ export class Analytics {
       this.data()?.wrongWay?.zones.some((zone) => zone.dataQuality.kind !== 'InsufficientData') ??
       false,
   );
-  readonly num = number;
-  readonly duration = duration;
-  readonly sourceTime = sourceTime;
-  readonly date = timestamp;
-  readonly points = zonePoints;
+  readonly num = inject(LocalizedFormat).number;
+  readonly duration = inject(LocalizedFormat).duration;
+  readonly sourceTime = inject(LocalizedFormat).sourceTime;
+  readonly date = inject(LocalizedFormat).timestamp;
+  readonly points = inject(LocalizedFormat).zonePoints;
   private readonly request = computed(() => {
     this.version();
     return {
@@ -138,6 +143,9 @@ export class Analytics {
     };
   });
   constructor() {
+    afterNextRender(() => {
+      this.animateEntrance();
+    });
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (this.tabs.some((item) => item.key === tab)) this.tab.set(tab as Tab);
     toObservable(this.request)
@@ -212,19 +220,19 @@ export class Analytics {
   peakTime(utc: string | null, ms: number | null): string {
     const period = this.period();
     return period?.timeBasis === 'sourceTime'
-      ? sourceTime(ms)
+      ? this.sourceTime(ms)
       : utc
-        ? timestamp(utc, period?.timeZoneId)
+        ? this.date(utc, period?.timeZoneId)
         : 'N/A';
   }
   bucket(point: ZonePeriod | null): string {
     return !point
       ? 'N/A'
       : this.period()?.timeBasis === 'sourceTime'
-        ? sourceTime(point.period.startSourceTimeMs)
-        : timestamp(point.period.startUtc, this.period()?.timeZoneId);
+        ? this.sourceTime(point.period.startSourceTimeMs)
+        : this.date(point.period.startUtc, this.period()?.timeZoneId);
   }
-  readonly staffPoints = staffPoints;
+  readonly staffPoints = inject(LocalizedFormat).staffPoints;
   utilization(id: string) {
     return this.data()?.utilization?.zones.find((zone) => zone.zoneId === id);
   }
@@ -234,10 +242,12 @@ export class Analytics {
       element.parentElement!.querySelectorAll<HTMLButtonElement>('button'),
     );
     const index = buttons.indexOf(element);
+    const forward = this.i18n.dir() === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+    const backward = this.i18n.dir() === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
     const next =
-      event.key === 'ArrowRight'
+      event.key === forward
         ? (index + 1) % buttons.length
-        : event.key === 'ArrowLeft'
+        : event.key === backward
           ? (index - 1 + buttons.length) % buttons.length
           : event.key === 'Home'
             ? 0
@@ -249,5 +259,52 @@ export class Analytics {
       buttons[next].focus();
       buttons[next].click();
     }
+  }
+
+  private animateEntrance(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const host = this.elementRef.nativeElement as HTMLElement;
+    const ctx = gsap.context(() => {
+      gsap.from('.page-heading', {
+        opacity: 0,
+        y: -10,
+        duration: 0.45,
+        ease: 'power2.out',
+      });
+      gsap.from('app-report-filters', {
+        opacity: 0,
+        y: 12,
+        duration: 0.45,
+        ease: 'power2.out',
+        delay: 0.08,
+      });
+      gsap.from('.tabs button', {
+        opacity: 0,
+        y: 8,
+        duration: 0.35,
+        stagger: 0.04,
+        ease: 'power2.out',
+        delay: 0.16,
+      });
+      gsap.from('.report-meta-strip', {
+        opacity: 0,
+        y: 8,
+        duration: 0.35,
+        ease: 'power2.out',
+        delay: 0.24,
+      });
+      gsap.from('.kpi-col, .analytics-chart-card, .surface', {
+        opacity: 0,
+        y: 14,
+        duration: 0.4,
+        stagger: 0.05,
+        ease: 'power2.out',
+        delay: 0.28,
+      });
+    }, host);
+
+    this.destroy.onDestroy(() => ctx.revert());
   }
 }

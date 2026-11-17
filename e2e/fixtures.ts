@@ -194,6 +194,9 @@ const staff = {
   })),
 };
 export async function mockBackend(page: BrowserPage): Promise<void> {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('ai_vision_lang')) localStorage.setItem('ai_vision_lang', 'en');
+  });
   const sites = [{ ...site }];
   const cameras = [{ ...camera }];
   const zones = [{ ...zone }];

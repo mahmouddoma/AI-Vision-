@@ -1,6 +1,6 @@
 # AI Vision interface system
 
-An operations workspace for reviewing camera observations and administering their registry. The user's direction is restrained, clean and coordinated: minimal borders, no fluorescent colors, and Font Awesome icons. The layout is English-first, with logical CSS properties to support later RTL work; Arabic translation is not implemented.
+An operations workspace for reviewing camera observations and administering their registry. The user's direction is restrained, clean and coordinated: minimal borders, no fluorescent colors, and Font Awesome icons. Arabic and English are supported across routes, reports, registry forms, shared components and startup errors. Arabic is the default; the language control updates document language, direction and page titles and saves the preference locally. Registry names, identifiers and technical protocol values retain their original content. `src/app/core/i18n.ts` owns translations; `LocalizedFormat` applies the active locale to dates and unknown-value labels while preserving readable numeric identifiers and durations.
 
 ## Foundations
 

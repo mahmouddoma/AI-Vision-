@@ -4,6 +4,7 @@ import { signal } from '@angular/core';
 import { App } from './app';
 import { AppContext } from './core/context';
 import { Realtime } from './core/realtime';
+import { I18nService } from './core/i18n';
 describe('App shell', () => {
   it('renders semantic navigation, site context and skip link', () => {
     TestBed.configureTestingModule({
@@ -26,6 +27,7 @@ describe('App shell', () => {
         { provide: Realtime, useValue: { mode: signal('Polling') } },
       ],
     });
+    TestBed.inject(I18nService).setLang('en');
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;

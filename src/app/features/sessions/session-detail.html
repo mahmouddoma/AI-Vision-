@@ -1,13 +1,18 @@
-<nav class="breadcrumbs" aria-label="Breadcrumb">
-  <a routerLink="/sessions">Sessions</a><span>/ Report</span>
+<nav class="breadcrumbs" [attr.aria-label]="'Breadcrumb' | t">
+  <a routerLink="/sessions">{{ 'nav.sessions' | t }}</a><span>/ {{ 'sessions.title' | t }}</span>
 </nav>
 <header class="page-heading">
-  <div>
-    <h1>{{ session()?.sourceName || 'Session report' }}</h1>
-    <p>Session-level observations with explicit time and quality context.</p>
+  <div class="page-title-group">
+    <div class="page-title-badge" aria-hidden="true">
+      <app-icon name="film" />
+    </div>
+    <div>
+      <h1>{{ session()?.sourceName || ('sessions.title' | t) }}</h1>
+      <p>{{ 'sessions.subtitle' | t }}</p>
+    </div>
   </div>
-  <button class="button secondary" (click)="reload()" [disabled]="loading()">
-    <app-icon name="refresh" />Refresh
+  <button class="button secondary header-refresh-btn" (click)="reload()" [disabled]="loading()">
+    <app-icon name="refresh" />{{ 'action.refresh' | t }}
   </button>
 </header>
 @if (loading() || error()) {
@@ -22,47 +27,51 @@
           <h2>{{ session.cameraName }}</h2>
           <p>
             {{ session.externalSessionId }} ·
-            {{ session.sourceType === 'video_file' ? 'Recorded video' : 'Live observations' }}
+            {{
+              session.sourceType === 'video_file'
+                ? ('Recorded video' | t)
+                : ('Live observations' | t)
+            }}
           </p>
         </div>
         <app-status [value]="session.status" />
       </div>
       <dl class="detail-list">
         <div>
-          <dt>Source name</dt>
-          <dd>{{ session.sourceName || 'N/A' }}</dd>
+          <dt>{{ 'Source name' | t }}</dt>
+          <dd>{{ session.sourceName || ('N/A' | t) }}</dd>
         </div>
         <div>
-          <dt>Sequence range</dt>
+          <dt>{{ 'Sequence range' | t }}</dt>
           <dd>{{ num(session.firstSequence) }} · {{ num(session.lastSequence) }}</dd>
         </div>
         <div>
-          <dt>Source positions</dt>
+          <dt>{{ 'Source positions' | t }}</dt>
           <dd>
             {{
               session.sourceType === 'video_file'
                 ? sourceTime(session.firstSourceTimeMs) +
                   ' · ' +
                   sourceTime(session.lastSourceTimeMs)
-                : 'Live event time'
+                : ('Live event time' | t)
             }}
           </dd>
         </div>
         <div>
-          <dt>Receipt time (ingestion)</dt>
+          <dt>{{ 'Receipt time (ingestion)' | t }}</dt>
           <dd>{{ date(session.lastReceivedAtUtc, context.site()?.timeZoneId) }}</dd>
         </div>
         <div>
-          <dt>First / last source timestamp (UTC metadata)</dt>
+          <dt>{{ 'First / last source timestamp (UTC metadata)' | t }}</dt>
           <dd>
             {{ date(session.firstSourceTimestampUtc) }} · {{ date(session.lastSourceTimestampUtc) }}
           </dd>
         </div>
         <div>
-          <dt>Started / ended (ingestion)</dt>
+          <dt>{{ 'Started / ended (ingestion)' | t }}</dt>
           <dd>
             {{ date(session.startedAtUtc) }} ·
-            {{ session.endedAtUtc ? date(session.endedAtUtc) : 'Not ended' }}
+            {{ session.endedAtUtc ? date(session.endedAtUtc) : ('Not ended' | t) }}
           </dd>
         </div>
       </dl>
@@ -71,8 +80,10 @@
       <div class="notice warning">
         <app-icon name="info" />
         <p>
-          Video positions are elapsed playback time, not real venue visit times. Repeated video
-          loops can affect counts and dwell. Raw video playback is not available through this API.
+          {{
+            'Video positions are elapsed playback time, not real venue visit times. Repeated video loops can affect counts and dwell. Raw video playback is not available through this API.'
+              | t
+          }}
         </p>
       </div>
     }
@@ -88,28 +99,31 @@
     } @else if (report(); as report) {
       <div class="row row-cols-2 row-cols-xl-4 g-3">
         <app-metric
-          label="Unpositioned video observations"
+          [label]="'Unpositioned video observations' | t"
           [value]="num(report.untimedVideoObservations)"
-          detail="Observations missing a video timeline position"
+          [detail]="'Observations missing a video timeline position' | t"
         /><app-metric
-          label="Observed zones"
+          [label]="'Observed zones' | t"
           [value]="num(report.analytics.zones.length)"
-          detail="Registered zones in this session"
+          [detail]="'Registered zones in this session' | t"
         /><app-metric
-          label="Timeline basis"
+          [label]="'Timeline basis' | t"
           [value]="report.analytics.period.timeBasis === 'sourceTime' ? 'Video time' : 'Event time'"
           [detail]="report.analytics.period.timeZoneId"
         /><app-metric
-          label="Interval"
+          [label]="'Interval' | t"
           [value]="report.analytics.period.interval"
-          detail="Server-calculated report buckets"
+          [detail]="'Server-calculated report buckets' | t"
         />
       </div>
       @if (!report.analytics.zones.length) {
         <section class="surface">
           <app-state
-            title="No timed observations"
-            message="No eligible zone observations match this session range. Adjust the source positions or review missing-position counts."
+            [title]="'No timed observations' | t"
+            [message]="
+              'No eligible zone observations match this session range. Adjust the source positions or review missing-position counts.'
+                | t
+            "
           />
         </section>
       }
@@ -121,59 +135,59 @@
           </div>
           <dl class="detail-list">
             <div>
-              <dt>Average / peak occupancy</dt>
+              <dt>{{ 'Average / peak occupancy' | t }}</dt>
               <dd>{{ num(zone.averageOccupancy, 1) }} / {{ num(zone.peakOccupancy) }}</dd>
             </div>
             <div>
-              <dt>Peak position</dt>
+              <dt>{{ 'Peak position' | t }}</dt>
               <dd>
                 {{
                   report.analytics.period.timeBasis === 'sourceTime'
                     ? sourceTime(zone.peakAtSourceTimeMs)
                     : zone.peakAtUtc
                       ? date(zone.peakAtUtc, report.analytics.period.timeZoneId)
-                      : 'N/A'
+                      : ('N/A' | t)
                 }}
               </dd>
             </div>
             <div>
-              <dt>Estimated historical dwell</dt>
+              <dt>{{ 'Estimated historical dwell' | t }}</dt>
               <dd>{{ duration(zone.estimatedHistoricalAverageDwellSeconds) }}</dd>
             </div>
             <div>
-              <dt>Uncertain visits</dt>
+              <dt>{{ 'Uncertain visits' | t }}</dt>
               <dd>{{ num(zone.uncertainVisits) }}</dd>
             </div>
           </dl>
           <app-chart
-            [title]="zone.zoneName + ' · Occupancy'"
+            [title]="zone.zoneName + (' · Occupancy' | t)"
             [points]="points(zone.series, report.analytics.period)"
-            primaryLabel="Average occupancy"
-            secondaryLabel="Peak occupancy"
+            [primaryLabel]="'Average occupancy' | t"
+            [secondaryLabel]="'Peak occupancy' | t"
           /><app-chart
-            [title]="zone.zoneName + ' · Traffic'"
+            [title]="zone.zoneName + (' · Traffic' | t)"
             [points]="points(zone.series, report.analytics.period, 'traffic')"
-            primaryLabel="Zone arrivals"
-            secondaryLabel="Gate entries"
+            [primaryLabel]="'Zone arrivals' | t"
+            [secondaryLabel]="'Gate entries' | t"
           />
         </section>
       }
       @for (camera of report.staff.cameras; track camera.cameraId) {
         <section class="surface stack">
           <div class="section-heading">
-            <h2>{{ camera.cameraName }} · Staff</h2>
+            <h2>{{ camera.cameraName }} {{ '· Staff' | t }}</h2>
             <app-quality [value]="camera.dataQuality" />
           </div>
           <p>
-            Latest {{ num(camera.latestStaffCount) }} · Average
-            {{ num(camera.averageStaffCount, 1) }} · Peak {{ num(camera.peakStaffCount) }}.
-            Camera-scoped observations, not distinct employees.
+            {{ 'Latest' | t }} {{ num(camera.latestStaffCount) }} {{ '· Average' | t }}
+            {{ num(camera.averageStaffCount, 1) }} {{ '· Peak' | t }} {{ num(camera.peakStaffCount)
+            }}{{ '. Camera-scoped observations, not distinct employees.' | t }}
           </p>
           <app-chart
-            [title]="camera.cameraName + ' - Staff presence'"
+            [title]="camera.cameraName + (' - Staff presence' | t)"
             [points]="staffPoints(camera.series, report.staff.period)"
-            primaryLabel="Average staff"
-            secondaryLabel="Peak staff"
+            [primaryLabel]="'Average staff' | t"
+            [secondaryLabel]="'Peak staff' | t"
           />
         </section>
       }

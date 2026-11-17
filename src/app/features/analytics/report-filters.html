@@ -3,76 +3,95 @@
   [open]="expanded()"
   (toggle)="expanded.set($any($event.target).open)"
 >
-  <summary>
-    <app-icon name="filters" />Report filters
-    <span class="text-muted"
-      >· {{ source() === 'video_file' ? 'Video source time' : 'Live event time' }}</span
-    >
+  <summary class="filter-summary">
+    <div class="filter-summary-title">
+      <span class="filter-icon-badge"><app-icon name="filters" /></span>
+      <span class="filter-title-text">{{ 'filters.heading' | t }}</span>
+      <span class="filter-pill">
+        <span class="status-dot dot-fresh"></span>
+        {{
+          source() === 'video_file' ? ('filters.recordedVideo' | t) : ('filters.liveEventTime' | t)
+        }}
+      </span>
+      @if (cameraId()) {
+        <span class="filter-pill filter-pill-subtle">
+          <app-icon name="camera" /> {{ 'filters.filtered' | t }}
+        </span>
+      }
+    </div>
+    <div class="filter-summary-toggle">
+      <span class="toggle-label">{{
+        expanded() ? ('action.compactView' | t) : ('filters.options' | t)
+      }}</span>
+      <app-icon [name]="expanded() ? 'down' : 'right'" />
+    </div>
   </summary>
-  <form (submit)="$event.preventDefault(); apply()">
-    <div class="toolbar">
-      <div class="field">
-        <label for="filter-source">Data source</label
-        ><select
+  <form class="filter-form" (submit)="$event.preventDefault(); apply()">
+    <div class="filter-row filter-row-context">
+      <div class="filter-field">
+        <label for="filter-source"><app-icon name="server" />{{ 'filters.dataSource' | t }}</label>
+        <select
           id="filter-source"
           [ngModel]="source()"
           (ngModelChange)="source.set($event); sessionId.set('')"
           name="source"
           [disabled]="!!session()"
         >
-          <option value="live">Live observations</option>
-          <option value="video_file">Recorded video</option>
+          <option value="live">{{ 'filters.liveObservations' | t }}</option>
+          <option value="video_file">{{ 'filters.recordedVideo' | t }}</option>
         </select>
       </div>
-      <div class="field">
-        <label for="filter-camera">Camera</label
-        ><select
+      <div class="filter-field">
+        <label for="filter-camera"><app-icon name="camera" />{{ 'filters.camera' | t }}</label>
+        <select
           id="filter-camera"
           [ngModel]="cameraId()"
           (ngModelChange)="setCamera($event)"
           name="camera"
           [disabled]="!!session()"
         >
-          <option value="">All cameras</option>
+          <option value="">{{ 'filters.allCameras' | t }}</option>
           @for (camera of cameras(); track camera.id) {
             <option [value]="camera.id">{{ camera.name }}</option>
           }
         </select>
       </div>
-      <div class="field">
-        <label for="filter-zone">Zone</label
-        ><select
+      <div class="filter-field">
+        <label for="filter-zone"><app-icon name="zones" />{{ 'filters.zone' | t }}</label>
+        <select
           id="filter-zone"
           [ngModel]="zoneId()"
           (ngModelChange)="zoneId.set($event)"
           name="zone"
           [disabled]="!cameraId()"
         >
-          <option value="">All zones</option>
+          <option value="">{{ 'filters.allZones' | t }}</option>
           @for (zone of zones(); track zone.id) {
             <option [value]="zone.id">{{ zone.name }}</option>
           }
         </select>
       </div>
-      <div class="field">
-        <label for="filter-interval">Interval</label
-        ><select
+      <div class="filter-field">
+        <label for="filter-interval"><app-icon name="clock" />{{ 'filters.interval' | t }}</label>
+        <select
           id="filter-interval"
           [ngModel]="interval()"
           (ngModelChange)="interval.set($event)"
           name="interval"
         >
-          <option value="minute">Minute</option>
-          <option value="hour">Hour</option>
-          <option value="day">Day</option>
+          <option value="minute">{{ 'filters.minute' | t }}</option>
+          <option value="hour">{{ 'filters.hour' | t }}</option>
+          <option value="day">{{ 'filters.day' | t }}</option>
         </select>
       </div>
     </div>
-    <div class="toolbar">
+    <div class="filter-row filter-row-time">
       @if (source() === 'live') {
-        <div class="field">
-          <label for="filter-from">From (inclusive)</label
-          ><input
+        <div class="filter-field">
+          <label for="filter-from"
+            ><app-icon name="calendar" />{{ 'filters.fromInclusive' | t }}</label
+          >
+          <input
             id="filter-from"
             type="datetime-local"
             [ngModel]="from()"
@@ -81,9 +100,9 @@
             required
           />
         </div>
-        <div class="field">
-          <label for="filter-to">To (exclusive)</label
-          ><input
+        <div class="filter-field">
+          <label for="filter-to"><app-icon name="calendar" />{{ 'filters.toExclusive' | t }}</label>
+          <input
             id="filter-to"
             type="datetime-local"
             [ngModel]="to()"
@@ -93,16 +112,18 @@
           />
         </div>
       } @else {
-        <div class="field">
-          <label for="filter-session">Video session *</label
-          ><select
+        <div class="filter-field filter-field-session">
+          <label for="filter-session"
+            ><app-icon name="film" />{{ 'filters.videoSession' | t }}</label
+          >
+          <select
             id="filter-session"
             [ngModel]="sessionId()"
             (ngModelChange)="sessionId.set($event)"
             name="sessionId"
             [disabled]="!!session()"
           >
-            <option value="">Select a session</option>
+            <option value="">{{ 'filters.selectSession' | t }}</option>
             @if (session(); as current) {
               <option [value]="current.id">{{ current.sourceName }}</option>
             }
@@ -113,9 +134,11 @@
             }
           </select>
         </div>
-        <div class="field">
-          <label for="filter-from-ms">From position (ms)</label
-          ><input
+        <div class="filter-field">
+          <label for="filter-from-ms"
+            ><app-icon name="clock" />{{ 'filters.fromPosition' | t }}</label
+          >
+          <input
             id="filter-from-ms"
             type="number"
             min="0"
@@ -125,9 +148,9 @@
             name="fromMs"
           />
         </div>
-        <div class="field">
-          <label for="filter-to-ms">To position (ms)</label
-          ><input
+        <div class="filter-field">
+          <label for="filter-to-ms"><app-icon name="clock" />{{ 'filters.toPosition' | t }}</label>
+          <input
             id="filter-to-ms"
             type="number"
             min="0"
@@ -138,23 +161,27 @@
           />
         </div>
       }
-      <button class="button" [disabled]="busy()" type="submit">
-        <app-icon name="check" />{{ busy() ? 'Loading...' : 'Apply filters' }}
-      </button>
+      <div class="filter-action">
+        <button class="button filter-apply-btn" [disabled]="busy()" type="submit">
+          <app-icon name="check" />{{ busy() ? '...' : ('action.applyFilters' | t) }}
+        </button>
+      </div>
     </div>
-    <p class="field-help">
-      {{
-        source() === 'live'
-          ? 'Date inputs use ' +
-            localTimezone +
-            '. Requests use UTC; displayed reports use ' +
-            (context.site()?.timeZoneId || 'the report time zone') +
-            '. Range is [from, to).'
-          : 'Positions are elapsed milliseconds within the video, not venue clock time.'
-      }}
-    </p>
-    @if (error() || lookupsError()) {
-      <p class="field-error" role="alert">{{ error() || lookupsError() }}</p>
-    }
+    <div class="filter-footer">
+      <p class="field-help">
+        <app-icon name="info" />
+        {{
+          source() === 'live'
+            ? ('filters.localTimeNote' | t: { timezone: localTimezone })
+            : ('Positions are elapsed milliseconds within the video, not venue clock time.' | t)
+        }}
+      </p>
+      @if (error() || lookupsError()) {
+        <p class="field-error" role="alert">
+          <app-icon name="warning" />
+          {{ error() ? (error() | t) : i18n.errorMessage(lookupsError()!) }}
+        </p>
+      }
+    </div>
   </form>
 </details>

@@ -1,6 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core';
+import { LocalizedFormat } from '../core/localized-format';
+import { TranslatePipe } from '../core/i18n';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  signal,
+  inject,
+} from '@angular/core';
 import { DataQuality } from '../core/models';
-import { number } from '../core/format';
 import { Quality } from './quality';
 import { Table, Pagination } from './table';
 export interface ChartPoint {
@@ -11,7 +20,7 @@ export interface ChartPoint {
 }
 @Component({
   selector: 'app-chart',
-  imports: [Table, Quality, Pagination],
+  imports: [TranslatePipe, Table, Quality, Pagination],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<figure class="chart">
     <figcaption>
@@ -20,9 +29,9 @@ export interface ChartPoint {
         <p>{{ description() }}</p>
       </div>
       <span class="chart-legend"
-        >{{ primaryLabel() }}
+        >{{ primaryLabel() | t }}
         @if (secondaryLabel()) {
-          <span> / {{ secondaryLabel() }}</span>
+          <span> / {{ secondaryLabel() | t }}</span>
         }
       </span>
     </figcaption>
@@ -34,7 +43,7 @@ export interface ChartPoint {
           preserveAspectRatio="none"
           role="img"
           [attr.aria-label]="
-            title() + '. ' + description() + '. Exact values in the data table below.'
+            title() + '. ' + description() + ('. Exact values in the data table below.' | t)
           "
         >
           <path class="chart-grid" d="M 0 10 H 640 M 0 90 H 640 M 0 170 H 640" />
@@ -49,13 +58,15 @@ export interface ChartPoint {
       </div>
     } @else {
       <p class="chart-empty">
-        No eligible observations in this period. Missing values are not zero.
+        {{ 'No eligible observations in this period. Missing values are not zero.' | t }}
       </p>
     }
     <details class="chart-data" (toggle)="tableOpen.set($any($event.target).open)">
-      <summary>View accessible data table ({{ points().length }} periods)</summary>
+      <summary>
+        {{ 'View accessible data table (' | t }}{{ points().length }} {{ 'periods)' | t }}
+      </summary>
       @if (tableOpen()) {
-        <app-table label="Chart data"
+        <app-table [label]="'Chart data' | t"
           ><table>
             <caption class="visually-hidden">
               {{
@@ -64,12 +75,12 @@ export interface ChartPoint {
             </caption>
             <thead>
               <tr>
-                <th scope="col">Period</th>
-                <th scope="col">{{ primaryLabel() }}</th>
+                <th scope="col">{{ 'Period' | t }}</th>
+                <th scope="col">{{ primaryLabel() | t }}</th>
                 @if (secondaryLabel()) {
-                  <th scope="col">{{ secondaryLabel() }}</th>
+                  <th scope="col">{{ secondaryLabel() | t }}</th>
                 }
-                <th scope="col">Quality</th>
+                <th scope="col">{{ 'Quality' | t }}</th>
               </tr>
             </thead>
             <tbody>
@@ -107,7 +118,7 @@ export class Chart {
   );
   readonly primaryLabel = input('Average');
   readonly secondaryLabel = input('');
-  readonly num = number;
+  readonly num = inject(LocalizedFormat).number;
   readonly hasValues = computed(() =>
     this.points().some((p) => p.value != null || p.secondary != null),
   );

@@ -23,24 +23,26 @@ export function reportQuery(filter: ReportFilter): Query {
 }
 
 export interface UiError {
+  status?: number;
   title: string;
   message: string;
   traceId?: string;
   conflict: boolean;
   fields: Record<string, string[]>;
 }
+export const API_ERROR_MESSAGES: Readonly<Record<number, string>> = {
+  0: 'The analytics server could not be reached. Check that it is running and allows this app through CORS, then retry.',
+  400: 'Check the highlighted fields or adjust the report filters.',
+  404: 'This record is no longer available. Refresh the list to continue.',
+  409: 'This record changed or its identifier is already in use. Reload the latest record before trying again.',
+  503: 'The backend is not ready. Check its database and MQTT services, then retry.',
+};
 export function apiError(error: unknown): UiError {
   const http = error instanceof HttpErrorResponse ? error : null;
   const problem: ApiProblem = http?.error && typeof http.error === 'object' ? http.error : {};
   const status = http?.status;
-  const messages: Record<number, string> = {
-    0: 'The analytics server could not be reached. Check that it is running and allows this app through CORS, then retry.',
-    400: 'Check the highlighted fields or adjust the report filters.',
-    404: 'This record is no longer available. Refresh the list to continue.',
-    409: 'This record changed or its identifier is already in use. Reload the latest record before trying again.',
-    503: 'The backend is not ready. Check its database and MQTT services, then retry.',
-  };
   return {
+    status,
     title:
       status === 409
         ? 'Update needs your attention'
@@ -50,7 +52,7 @@ export function apiError(error: unknown): UiError {
     message:
       status && status < 500 && problem.detail
         ? problem.detail
-        : (messages[status ?? 0] ?? 'Something went wrong on the server. Please retry.'),
+        : (API_ERROR_MESSAGES[status ?? 0] ?? 'Something went wrong on the server. Please retry.'),
     traceId: problem.traceId,
     conflict: status === 409,
     fields: problem.errors ?? {},

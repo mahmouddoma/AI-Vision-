@@ -1,17 +1,18 @@
 import { ReportPeriod, StaffPoint, ZonePeriod } from './models';
 import { sourceTime, timestamp } from './format';
-import { ChartPoint } from '../ui/chart';
+import type { ChartPoint } from '../ui/chart';
 
 export function zonePoints(
   series: ZonePeriod[],
   period: ReportPeriod,
   metric = 'occupancy',
+  lang = 'en',
 ): ChartPoint[] {
   return series.map((point) => ({
     label:
       period.timeBasis === 'sourceTime'
         ? sourceTime(point.period.startSourceTimeMs)
-        : timestamp(point.period.startUtc, period.timeZoneId),
+        : timestamp(point.period.startUtc, period.timeZoneId, lang),
     value:
       point.dataQuality.kind === 'InsufficientData'
         ? null
@@ -35,12 +36,12 @@ export function zonePoints(
     quality: point.dataQuality,
   }));
 }
-export function staffPoints(series: StaffPoint[], period: ReportPeriod): ChartPoint[] {
+export function staffPoints(series: StaffPoint[], period: ReportPeriod, lang = 'en'): ChartPoint[] {
   return series.map((point) => ({
     label:
       period.timeBasis === 'sourceTime'
         ? sourceTime(point.period.startSourceTimeMs)
-        : timestamp(point.period.startUtc, period.timeZoneId),
+        : timestamp(point.period.startUtc, period.timeZoneId, lang),
     value: point.dataQuality.kind === 'InsufficientData' ? null : point.averageStaffCount,
     secondary: point.dataQuality.kind === 'InsufficientData' ? null : point.peakStaffCount,
     quality: point.dataQuality,

@@ -14,9 +14,10 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap } from 'rxjs';
-import { Api, apiError } from '../../core/api';
+import { Api, UiError, apiError } from '../../core/api';
 import { AppContext } from '../../core/context';
 import { Camera, Interval, ReportFilter, Session, SourceType, Zone } from '../../core/models';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 import { Icon } from '../../ui/icon';
 
 export function validateFilter(filter: ReportFilter): string | null {
@@ -46,11 +47,12 @@ const localDate = (date: Date) =>
   new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 @Component({
   selector: 'app-report-filters',
-  imports: [FormsModule, Icon],
+  imports: [FormsModule, Icon, TranslatePipe],
   templateUrl: './report-filters.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReportFilters {
+  readonly i18n = inject(I18nService);
   private readonly api = inject(Api);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
@@ -58,7 +60,11 @@ export class ReportFilters {
   readonly context = inject(AppContext);
   readonly session = input<Session | null>(null);
   readonly busy = input(false);
-  readonly expanded = signal(window.matchMedia('(min-width: 768px)').matches);
+  readonly expanded = signal(
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 768px)').matches
+      : true,
+  );
   readonly changed = output<ReportFilter>();
   readonly source = signal<SourceType>('live');
   readonly cameraId = signal('');
@@ -73,7 +79,7 @@ export class ReportFilters {
   readonly zones = signal<Zone[]>([]);
   readonly sessions = signal<Session[]>([]);
   readonly error = signal('');
-  readonly lookupsError = signal('');
+  readonly lookupsError = signal<UiError | null>(null);
   readonly localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   private readonly cameraQuery = computed(() =>
     this.session() ? '' : this.context.selectedSiteId(),
@@ -107,7 +113,7 @@ export class ReportFilters {
         switchMap((siteId) =>
           this.api.all<Camera>('cameras', { siteId }).pipe(
             catchError((error) => {
-              this.lookupsError.set(apiError(error).message);
+              this.lookupsError.set(apiError(error));
               return of([]);
             }),
           ),
@@ -147,7 +153,7 @@ export class ReportFilters {
                 })
                 .pipe(
                   catchError((error) => {
-                    this.lookupsError.set(apiError(error).message);
+                    this.lookupsError.set(apiError(error));
                     return of([]);
                   }),
                 )

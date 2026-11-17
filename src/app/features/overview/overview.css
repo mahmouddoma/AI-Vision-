@@ -1,39 +1,3 @@
-.health-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-5);
-  color: var(--muted);
-  font-size: 11px;
-  padding-inline: var(--space-1);
-}
-.health-strip > span:first-child {
-  color: var(--ink);
-  font-weight: 600;
-}
-.health-strip app-icon {
-  color: var(--accent);
-  margin-inline-end: var(--space-2);
-}
-.highlight-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
-}
-.highlight-grid article p {
-  color: var(--muted);
-  font-size: 11px;
-}
-.highlight-grid article h3 {
-  margin-top: var(--space-2);
-  font-size: 15px;
-}
-.highlight-grid article span {
-  display: block;
-  margin-top: var(--space-1);
-  color: var(--accent-dark);
-  font-size: 11px;
-}
 .onboarding {
   display: flex;
   align-items: center;
@@ -41,6 +5,8 @@
   text-align: center;
   padding: 56px var(--space-6);
   gap: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
 .onboarding h2 {
   font-size: 24px;
@@ -76,14 +42,66 @@
 .setup-steps > app-icon {
   font-size: 8px;
 }
-@media (max-width: 767px) {
-  .highlight-grid {
+@media (max-width: 991px) {
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .kpi-sep {
+    display: none;
+  }
+  .kpi-col:nth-child(1),
+  .kpi-col:nth-child(5) {
+    border-right: 1px solid var(--line);
+  }
+  .kpi-col:nth-child(1),
+  .kpi-col:nth-child(3) {
+    border-bottom: 1px solid var(--line);
+  }
+  .insights-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .insight-cell:nth-child(3n) {
+    border-right: 1px solid var(--line-subtle, #edf2f5);
+  }
+  .insight-cell:nth-child(2n) {
+    border-right: none;
+  }
+  .insight-cell:nth-child(n + 5) {
+    border-bottom: none;
+  }
+}
+@media (max-width: 767px) {
   .setup-steps {
     flex-direction: column;
   }
   .setup-steps > app-icon {
     transform: rotate(90deg);
+  }
+}
+@media (max-width: 576px) {
+  .kpi-strip {
+    grid-template-columns: 1fr;
+  }
+  .kpi-col {
+    border-right: none !important;
+    border-bottom: 1px solid var(--line) !important;
+  }
+  .kpi-col:last-child {
+    border-bottom: none !important;
+  }
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+  .insight-cell {
+    border-right: none !important;
+    border-bottom: 1px solid var(--line-subtle, #edf2f5) !important;
+  }
+  .insight-cell:last-child {
+    border-bottom: none !important;
+  }
+  .health-strip-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

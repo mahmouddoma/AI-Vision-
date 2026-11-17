@@ -1,15 +1,29 @@
 <header class="page-heading">
-  <div>
-    <h1>Analytics</h1>
-    <p>Understand movement, occupancy and dwell. Every metric has a source.</p>
+  <div class="page-title-group">
+    <div class="page-title-badge" aria-hidden="true">
+      <app-icon name="chart" />
+    </div>
+    <div>
+      <h1>{{ 'analytics.title' | t }}</h1>
+      <p>{{ 'analytics.subtitle' | t }}</p>
+    </div>
   </div>
-  <button class="button secondary" [disabled]="loading() || !filter()" (click)="reload()">
-    <app-icon name="refresh" />Refresh
+  <button
+    class="button secondary header-refresh-btn"
+    [disabled]="loading() || !filter()"
+    (click)="reload()"
+  >
+    <app-icon name="refresh" />{{ 'action.refresh' | t }}
   </button>
 </header>
 <div class="stack">
   <app-report-filters [busy]="loading()" (changed)="filter.set($event)" />
-  <div class="tabs" role="tablist" aria-label="Analytics reports" (keydown)="onTabsKey($event)">
+  <div
+    class="tabs"
+    role="tablist"
+    [attr.aria-label]="'Analytics reports' | t"
+    (keydown)="onTabsKey($event)"
+  >
     @for (item of tabs; track item.key) {
       <button
         role="tab"
@@ -19,7 +33,8 @@
         [attr.tabindex]="tab() === item.key ? 0 : -1"
         (click)="tab.set(item.key)"
       >
-        {{ item.label }}
+        <app-icon [name]="item.icon" />
+        <span>{{ item.translationKey | t }}</span>
       </button>
     }
   </div>
@@ -30,31 +45,67 @@
     class="stack"
   >
     @if (period(); as period) {
-      <p class="report-note">
-        {{
-          period.sourceType === 'video_file'
-            ? 'Recorded video · Source-relative timeline'
-            : 'Live observations · Event time'
-        }}
-        · {{ period.interval }} buckets · {{ period.timeZoneId }}
-        @if (period.from && period.to) {
-          · {{ date(period.from, period.timeZoneId) }} → {{ date(period.to, period.timeZoneId) }}
-        } @else {
-          · {{ sourceTime(period.fromSourceTimeMs) }} → {{ sourceTime(period.toSourceTimeMs) }}
-        }
-      </p>
+      <div class="report-note report-meta-strip">
+        <span class="report-meta-item">
+          <app-icon [name]="period.sourceType === 'video_file' ? 'film' : 'pulse'" />
+          <strong class="report-meta-title">{{
+            period.sourceType === 'video_file' ? ('Recorded video' | t) : ('Live observations' | t)
+          }}</strong>
+        </span>
+        <span class="report-meta-divider" aria-hidden="true">|</span>
+        <span class="report-meta-item">
+          <app-icon name="clock" />
+          <span>{{
+            period.sourceType === 'video_file'
+              ? ('Source-relative timeline' | t)
+              : ('Event time' | t)
+          }}</span>
+        </span>
+        <span class="report-meta-divider" aria-hidden="true">|</span>
+        <span class="report-meta-item">
+          <app-icon name="chart" />
+          <span>{{
+            period.interval === 'hour'
+              ? ('Hour buckets' | t)
+              : (period.interval | t) + (' buckets' | t)
+          }}</span>
+        </span>
+        <span class="report-meta-divider" aria-hidden="true">|</span>
+        <span class="report-meta-item">
+          <app-icon name="location" />
+          <span>{{ period.timeZoneId }}</span>
+        </span>
+        <span class="report-meta-divider" aria-hidden="true">|</span>
+        <span class="report-meta-item">
+          <app-icon name="calendar" />
+          @if (period.from && period.to) {
+            <span
+              >{{ date(period.from, period.timeZoneId) }} →
+              {{ date(period.to, period.timeZoneId) }}</span
+            >
+          } @else {
+            <span
+              >{{ sourceTime(period.fromSourceTimeMs) }} →
+              {{ sourceTime(period.toSourceTimeMs) }}</span
+            >
+          }
+        </span>
+      </div>
     }
     @if (tab() === 'rankings') {
-      <div class="toolbar">
-        <div class="field">
-          <label for="ranking-metric">Rank zones by</label
-          ><select
+      <div class="toolbar analytics-toolbar">
+        <div class="field analytics-metric-field">
+          <label for="ranking-metric">
+            <app-icon name="chart" />
+            <span>{{ 'Rank zones by' | t }}</span>
+          </label>
+          <select
             id="ranking-metric"
             [value]="metric()"
             (change)="metric.set($any($event.target).value)"
           >
             @for (option of metricOptions; track option[0]) {
-              <option [value]="option[0]">{{ option[1] }}</option>
+              <option [value]="option[0]">{{ option[1] | t }}</option>
             }
           </select>
         </div>
@@ -64,22 +115,26 @@
       <div class="notice">
         <app-icon name="info" />
         <p>
-          Camera-scoped track estimates, not unique visitors or confirmed exits. Occlusion, session
-          changes and video loops can affect dwell. Reported average dwell is the latest matching
-          sample, not a weighted historical average.
+          {{
+            'Camera-scoped track estimates, not unique visitors or confirmed exits. Occlusion, session changes and video loops can affect dwell. Reported average dwell is the latest matching sample, not a weighted historical average.'
+              | t
+          }}
         </p>
       </div>
-      <div class="toolbar">
-        <div class="field">
-          <label for="dwell-metric">Dwell ranking</label
-          ><select
+      <div class="toolbar analytics-toolbar">
+        <div class="field analytics-metric-field">
+          <label for="dwell-metric">
+            <app-icon name="stopwatch" />
+            <span>{{ 'Dwell ranking metric' | t }}</span>
+          </label>
+          <select
             id="dwell-metric"
             [value]="dwellMetric()"
             (change)="dwellMetric.set($any($event.target).value)"
           >
-            <option value="estimatedAverageDwell">Estimated historical average</option>
-            <option value="reportedAverageDwell">Latest reported average</option>
-            <option value="longestActiveDwell">Longest active dwell</option>
+            <option value="estimatedAverageDwell">{{ 'Estimated historical average' | t }}</option>
+            <option value="reportedAverageDwell">{{ 'Latest reported average' | t }}</option>
+            <option value="longestActiveDwell">{{ 'Longest active dwell' | t }}</option>
           </select>
         </div>
       </div>
@@ -92,16 +147,19 @@
       <section class="surface">
         <app-state
           icon="filters"
-          title="Choose your report scope"
-          message="Select a source and apply a valid time range to explore your data."
+          [title]="'Choose your report scope' | t"
+          [message]="'Select a source and apply a valid time range to explore your data.' | t"
         />
       </section>
     } @else if (empty()) {
       <section class="surface">
         <app-state
           icon="chart"
-          title="No eligible observations"
-          message="There is not enough data for this report. Try another period or source; unknown values are not zero."
+          [title]="'No eligible observations' | t"
+          [message]="
+            'There is not enough data for this report. Try another period or source; unknown values are not zero.'
+              | t
+          "
         />
       </section>
     } @else {
@@ -109,21 +167,26 @@
         <section class="surface">
           <div class="section-heading">
             <div>
-              <h2>{{ tab() === 'dwell' ? 'Dwell ranking' : 'Zone ranking' }}</h2>
-              <p>Unit: {{ report.unit }} · Ordered by server-calculated values</p>
+              <h2>{{ tab() === 'dwell' ? ('Dwell ranking' | t) : ('Zone ranking' | t) }}</h2>
+              <p>
+                {{ 'Unit:' | t }} {{ report.unit | t }}
+                {{ '· Ordered by server-calculated values' | t }}
+              </p>
             </div>
           </div>
-          <app-table label="Zone rankings"
+          <app-table [label]="'Zone rankings' | t"
             ><table>
               <caption class="visually-hidden">
-                Zone rankings and data quality
+                {{
+                  'Zone rankings and data quality' | t
+                }}
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Rank</th>
-                  <th scope="col">Zone</th>
-                  <th scope="col">Value ({{ report.unit }})</th>
-                  <th scope="col">Data quality</th>
+                  <th scope="col">{{ 'Rank' | t }}</th>
+                  <th scope="col">{{ 'Zone' | t }}</th>
+                  <th scope="col">{{ 'Value (' | t }}{{ report.unit | t }})</th>
+                  <th scope="col">{{ 'Data quality' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,7 +200,9 @@
                     </th>
                     <td>
                       {{
-                        item.dataQuality.kind === 'InsufficientData' ? 'N/A' : num(item.value, 1)
+                        item.dataQuality.kind === 'InsufficientData'
+                          ? ('N/A' | t)
+                          : num(item.value, 1)
                       }}
                     </td>
                     <td><app-quality [value]="item.dataQuality" /></td>
@@ -151,28 +216,31 @@
         <div class="notice">
           <app-icon name="info" />
           <p>
-            Zone occupancy may include overlapping views. Peak hour is the eligible hour with the
-            highest time-weighted average, not the highest single sample. Missing intervals remain
-            gaps.
+            {{
+              'Zone occupancy may include overlapping views. Peak hour is the eligible hour with the highest time-weighted average, not the highest single sample. Missing intervals remain gaps.'
+                | t
+            }}
           </p>
         </div>
         @if (data()?.occupancy; as report) {
           <section class="surface">
-            <h2>Occupancy & capacity</h2>
-            <app-table label="Occupancy summaries"
+            <h2>{{ 'Occupancy & capacity' | t }}</h2>
+            <app-table [label]="'Occupancy summaries' | t"
               ><table>
                 <caption class="visually-hidden">
-                  Occupancy summaries
+                  {{
+                    'Occupancy summaries' | t
+                  }}
                 </caption>
                 <thead>
                   <tr>
-                    <th scope="col">Zone</th>
-                    <th scope="col">Average</th>
-                    <th scope="col">Peak / position</th>
-                    <th scope="col">Peak hour</th>
-                    <th scope="col">Capacity</th>
-                    <th scope="col">Average / peak utilization</th>
-                    <th scope="col">Quality</th>
+                    <th scope="col">{{ 'Zone' | t }}</th>
+                    <th scope="col">{{ 'Average' | t }}</th>
+                    <th scope="col">{{ 'Peak / position' | t }}</th>
+                    <th scope="col">{{ 'Peak hour' | t }}</th>
+                    <th scope="col">{{ 'Capacity' | t }}</th>
+                    <th scope="col">{{ 'Average / peak utilization' | t }}</th>
+                    <th scope="col">{{ 'Quality' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -191,11 +259,13 @@
                         }}</span>
                       </td>
                       <td>{{ bucket(zone.peakHour) }}</td>
-                      <td>{{ zone.capacity === null ? 'Not configured' : num(zone.capacity) }}</td>
+                      <td>
+                        {{ zone.capacity === null ? ('Not configured' | t) : num(zone.capacity) }}
+                      </td>
                       <td>
                         {{
                           zone.capacity === null
-                            ? 'N/A'
+                            ? ('N/A' | t)
                             : num(utilization(zone.zoneId)?.averageUtilizationPercent, 1) +
                               '% / ' +
                               num(zone.peakUtilizationPercent, 1) +
@@ -208,34 +278,41 @@
                 </tbody></table
             ></app-table>
           </section>
-          @for (zone of report.zones; track zone.zoneId) {
-            <section class="surface">
-              <app-chart
-                [title]="zone.zoneName + ' · Occupancy'"
-                description="Average and peak occupancy per period. Gaps represent unknown observations."
-                [points]="points(zone.series, report.period)"
-                primaryLabel="Average occupancy"
-                secondaryLabel="Peak occupancy"
-              />
-            </section>
-          }
+          <div class="analytics-chart-grid">
+            @for (zone of report.zones; track zone.zoneId) {
+              <div class="analytics-chart-card">
+                <app-chart
+                  [title]="zone.zoneName + (' · Occupancy' | t)"
+                  [description]="
+                    'Average and peak occupancy per period. Gaps represent unknown observations.'
+                      | t
+                  "
+                  [points]="points(zone.series, report.period)"
+                  [primaryLabel]="'Average occupancy' | t"
+                  [secondaryLabel]="'Peak occupancy' | t"
+                />
+              </div>
+            }
+          </div>
         }
         @if (data()?.peaks; as report) {
           <section class="surface">
-            <h2>Peak hours by metric</h2>
-            <app-table label="Peak hours"
+            <h2>{{ 'Peak hours by metric' | t }}</h2>
+            <app-table [label]="'Peak hours' | t"
               ><table>
                 <caption class="visually-hidden">
-                  Peak hours by metric
+                  {{
+                    'Peak hours by metric' | t
+                  }}
                 </caption>
                 <thead>
                   <tr>
-                    <th scope="col">Zone</th>
-                    <th scope="col">Occupancy</th>
-                    <th scope="col">Arrivals</th>
-                    <th scope="col">Entries</th>
-                    <th scope="col">Departures</th>
-                    <th scope="col">Wrong-way</th>
+                    <th scope="col">{{ 'Zone' | t }}</th>
+                    <th scope="col">{{ 'Occupancy' | t }}</th>
+                    <th scope="col">{{ 'Arrivals' | t }}</th>
+                    <th scope="col">{{ 'Entries' | t }}</th>
+                    <th scope="col">{{ 'Departures' | t }}</th>
+                    <th scope="col">{{ 'Wrong-way' | t }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,40 +333,87 @@
         }
       }
       @if (tab() === 'traffic' && data()?.traffic; as report) {
-        <div class="row row-cols-2 row-cols-xl-4 g-3">
-          <app-metric
-            label="Zone arrivals"
-            [value]="hasTrafficData() ? num(report.totals.arrivals) : 'N/A'"
-            detail="Server-derived period total"
-          /><app-metric
-            label="Gate entries"
-            [value]="hasTrafficData() ? num(report.totals.entries) : 'N/A'"
-            detail="Different from zone arrivals"
-          /><app-metric
-            label="Zone departures"
-            [value]="hasTrafficData() ? num(report.totals.departures) : 'N/A'"
-            detail="Server-derived period total"
-          /><app-metric
-            label="Gate exits"
-            [value]="hasTrafficData() ? num(report.totals.exits) : 'N/A'"
-            detail="Different from zone departures"
-          />
+        <div class="kpi-strip">
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-blue"><app-icon name="zones" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Zone arrivals' | t }}</span>
+                <span class="kpi-sub">{{ 'traffic' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              hasTrafficData() ? num(report.totals.arrivals) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Server-derived period total' | t }}</span>
+          </div>
+
+          <div class="kpi-sep"></div>
+
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-teal"><app-icon name="door" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Gate entries' | t }}</span>
+                <span class="kpi-sub">{{ 'gates' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              hasTrafficData() ? num(report.totals.entries) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Different from zone arrivals' | t }}</span>
+          </div>
+
+          <div class="kpi-sep"></div>
+
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-purple"><app-icon name="arrow" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Zone departures' | t }}</span>
+                <span class="kpi-sub">{{ 'traffic' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              hasTrafficData() ? num(report.totals.departures) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Server-derived period total' | t }}</span>
+          </div>
+
+          <div class="kpi-sep"></div>
+
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-green"><app-icon name="door" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Gate exits' | t }}</span>
+                <span class="kpi-sub">{{ 'gates' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              hasTrafficData() ? num(report.totals.exits) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Different from zone departures' | t }}</span>
+          </div>
         </div>
+
         <section class="surface">
-          <app-table label="Traffic by zone"
+          <app-table [label]="'Traffic by zone' | t"
             ><table>
               <caption class="visually-hidden">
-                Traffic by zone
+                {{
+                  'Traffic by zone' | t
+                }}
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Zone</th>
-                  <th scope="col">Arrivals</th>
-                  <th scope="col">Departures</th>
-                  <th scope="col">Entries</th>
-                  <th scope="col">Exits</th>
-                  <th scope="col">Wrong-way in / out / total</th>
-                  <th scope="col">Quality</th>
+                  <th scope="col">{{ 'Zone' | t }}</th>
+                  <th scope="col">{{ 'Arrivals' | t }}</th>
+                  <th scope="col">{{ 'Departures' | t }}</th>
+                  <th scope="col">{{ 'Entries' | t }}</th>
+                  <th scope="col">{{ 'Exits' | t }}</th>
+                  <th scope="col">{{ 'Wrong-way in / out / total' | t }}</th>
+                  <th scope="col">{{ 'Quality' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,28 +423,28 @@
                     <td>
                       {{
                         zone.dataQuality.kind === 'InsufficientData'
-                          ? 'N/A'
+                          ? ('N/A' | t)
                           : num(zone.traffic.arrivals)
                       }}
                     </td>
                     <td>
                       {{
                         zone.dataQuality.kind === 'InsufficientData'
-                          ? 'N/A'
+                          ? ('N/A' | t)
                           : num(zone.traffic.departures)
                       }}
                     </td>
                     <td>
                       {{
                         zone.dataQuality.kind === 'InsufficientData'
-                          ? 'N/A'
+                          ? ('N/A' | t)
                           : num(zone.traffic.entries)
                       }}
                     </td>
                     <td>
                       {{
                         zone.dataQuality.kind === 'InsufficientData'
-                          ? 'N/A'
+                          ? ('N/A' | t)
                           : num(zone.traffic.exits)
                       }}
                     </td>
@@ -334,40 +458,49 @@
               </tbody></table
           ></app-table>
         </section>
-        @for (zone of data()?.trends?.zones; track zone.zoneId) {
-          <section class="surface stack">
-            <app-chart
-              [title]="zone.zoneName + ' · Inbound traffic'"
-              description="Server-derived changes per bucket, not sums of cumulative snapshots."
-              [points]="points(zone.series, report.period, 'traffic')"
-              primaryLabel="Zone arrivals"
-              secondaryLabel="Gate entries"
-            /><app-chart
-              [title]="zone.zoneName + ' · Outbound traffic'"
-              [points]="points(zone.series, report.period, 'departures')"
-              primaryLabel="Zone departures"
-              secondaryLabel="Gate exits"
-            />
-          </section>
-        }
+        <div class="analytics-chart-grid">
+          @for (zone of data()?.trends?.zones; track zone.zoneId) {
+            <div class="analytics-chart-card">
+              <app-chart
+                [title]="zone.zoneName + (' · Inbound traffic' | t)"
+                [description]="
+                  'Server-derived changes per bucket, not sums of cumulative snapshots.' | t
+                "
+                [points]="points(zone.series, report.period, 'traffic')"
+                [primaryLabel]="'Zone arrivals' | t"
+                [secondaryLabel]="'Gate entries' | t"
+              />
+            </div>
+            <div class="analytics-chart-card">
+              <app-chart
+                [title]="zone.zoneName + (' · Outbound traffic' | t)"
+                [points]="points(zone.series, report.period, 'departures')"
+                [primaryLabel]="'Zone departures' | t"
+                [secondaryLabel]="'Gate exits' | t"
+              />
+            </div>
+          }
+        </div>
       }
       @if (tab() === 'dwell' && data()?.dwell; as report) {
         <section class="surface">
-          <app-table label="Dwell metrics"
+          <app-table [label]="'Dwell metrics' | t"
             ><table>
               <caption class="visually-hidden">
-                Reported and estimated dwell metrics
+                {{
+                  'Reported and estimated dwell metrics' | t
+                }}
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Zone</th>
-                  <th scope="col">Latest reported average</th>
-                  <th scope="col">Longest active</th>
-                  <th scope="col">Estimated completed visits</th>
-                  <th scope="col">Estimated total dwell</th>
-                  <th scope="col">Estimated historical average</th>
-                  <th scope="col">Uncertain visits</th>
-                  <th scope="col">Quality</th>
+                  <th scope="col">{{ 'Zone' | t }}</th>
+                  <th scope="col">{{ 'Latest reported average' | t }}</th>
+                  <th scope="col">{{ 'Longest active' | t }}</th>
+                  <th scope="col">{{ 'Estimated completed visits' | t }}</th>
+                  <th scope="col">{{ 'Estimated total dwell' | t }}</th>
+                  <th scope="col">{{ 'Estimated historical average' | t }}</th>
+                  <th scope="col">{{ 'Uncertain visits' | t }}</th>
+                  <th scope="col">{{ 'Quality' | t }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -397,87 +530,141 @@
         </section>
       }
       @if (tab() === 'wrong-way' && data()?.wrongWay; as report) {
-        <div class="row row-cols-2 row-cols-xl-4 g-3">
-          <app-metric
-            label="Wrong-way in"
-            [value]="hasWrongWayData() ? num(report.wrongWayIn) : 'N/A'"
-          /><app-metric
-            label="Wrong-way out"
-            [value]="hasWrongWayData() ? num(report.wrongWayOut) : 'N/A'"
-          /><app-metric
-            label="Wrong-way events"
-            [value]="hasWrongWayData() ? num(report.wrongWayEvents) : 'N/A'"
-            detail="No violation percentage inferred"
-          /><app-metric
-            label="Highest wrong-way zone"
-            [value]="report.highestWrongWayZone?.zoneName || 'N/A'"
-          />
-        </div>
-        @for (zone of report.zones; track zone.zoneId) {
-          <section class="surface stack">
-            <div class="section-heading">
-              <h2>{{ zone.zoneName }}</h2>
-              <app-quality [value]="zone.dataQuality" />
+        <div class="kpi-strip">
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-blue"><app-icon name="warning" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Wrong-way in' | t }}</span>
+                <span class="kpi-sub">{{ 'direction' | t }}</span>
+              </div>
             </div>
-            <p>
-              {{ num(zone.traffic.wrongWayIn) }} inward ·
-              {{ num(zone.traffic.wrongWayOut) }} outward ·
-              {{ num(zone.traffic.wrongWayEvents) }} total events
-            </p>
-            <app-chart
-              [title]="zone.zoneName + ' · Wrong-way movement'"
-              [points]="points(zone.series, report.period, 'wrong-way')"
-              primaryLabel="Wrong-way in"
-              secondaryLabel="Wrong-way out"
-            />
-          </section>
-        }
+            <strong class="kpi-num">{{
+              hasWrongWayData() ? num(report.wrongWayIn) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Inward direction violations' | t }}</span>
+          </div>
+
+          <div class="kpi-sep"></div>
+
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-teal"><app-icon name="warning" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Wrong-way out' | t }}</span>
+                <span class="kpi-sub">{{ 'direction' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              hasWrongWayData() ? num(report.wrongWayOut) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Outward direction violations' | t }}</span>
+          </div>
+
+          <div class="kpi-sep"></div>
+
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-purple"><app-icon name="bolt" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Wrong-way events' | t }}</span>
+                <span class="kpi-sub">{{ 'totals' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              hasWrongWayData() ? num(report.wrongWayEvents) : ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'No violation percentage inferred' | t }}</span>
+          </div>
+
+          <div class="kpi-sep"></div>
+
+          <div class="kpi-col">
+            <div class="kpi-head">
+              <div class="kpi-icon kpi-icon-green"><app-icon name="zones" /></div>
+              <div class="kpi-title-block">
+                <span class="kpi-label">{{ 'Highest zone' | t }}</span>
+                <span class="kpi-sub">{{ 'highest count' | t }}</span>
+              </div>
+            </div>
+            <strong class="kpi-num">{{
+              report.highestWrongWayZone?.zoneName || ('N/A' | t)
+            }}</strong>
+            <span class="kpi-desc">{{ 'Most affected area' | t }}</span>
+          </div>
+        </div>
+
+        <div class="analytics-chart-grid">
+          @for (zone of report.zones; track zone.zoneId) {
+            <div class="analytics-chart-card">
+              <div class="section-heading">
+                <h2>{{ zone.zoneName }}</h2>
+                <app-quality [value]="zone.dataQuality" />
+              </div>
+              <p class="cell-sub">
+                {{ num(zone.traffic.wrongWayIn) }} {{ 'inward ·' | t }}
+                {{ num(zone.traffic.wrongWayOut) }} {{ 'outward ·' | t }}
+                {{ num(zone.traffic.wrongWayEvents) }} {{ 'total events' | t }}
+              </p>
+              <app-chart
+                [title]="zone.zoneName + (' · Wrong-way movement' | t)"
+                [points]="points(zone.series, report.period, 'wrong-way')"
+                [primaryLabel]="'Wrong-way in' | t"
+                [secondaryLabel]="'Wrong-way out' | t"
+              />
+            </div>
+          }
+        </div>
       }
       @if (tab() === 'staff' && data()?.staff; as report) {
         <div class="notice">
           <app-icon name="info" />
           <p>
-            Staff presence is camera-scoped. Overlapping views cannot be added together to count
-            distinct employees.
+            {{
+              'Staff presence is camera-scoped. Overlapping views cannot be added together to count distinct employees.'
+                | t
+            }}
           </p>
         </div>
-        @for (camera of report.cameras; track camera.cameraId) {
-          <section class="surface stack">
-            <div class="section-heading">
-              <h2>{{ camera.cameraName }}</h2>
-              <app-quality [value]="camera.dataQuality" />
+        <div class="analytics-chart-grid">
+          @for (camera of report.cameras; track camera.cameraId) {
+            <div class="analytics-chart-card">
+              <div class="section-heading">
+                <h2>{{ camera.cameraName }}</h2>
+                <app-quality [value]="camera.dataQuality" />
+              </div>
+              <dl class="detail-list">
+                <div>
+                  <dt>{{ 'Latest staff count' | t }}</dt>
+                  <dd>{{ num(camera.latestStaffCount) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'Last observation' | t }}</dt>
+                  <dd>{{ date(camera.lastReceivedAtUtc, report.period.timeZoneId) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'Average staff' | t }}</dt>
+                  <dd>{{ num(camera.averageStaffCount, 1) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'Peak staff' | t }}</dt>
+                  <dd>{{ num(camera.peakStaffCount) }}</dd>
+                </div>
+              </dl>
+              <app-chart
+                [title]="camera.cameraName + (' · Staff presence' | t)"
+                [points]="staffPoints(camera.series, report.period)"
+                [primaryLabel]="'Average staff' | t"
+                [secondaryLabel]="'Peak staff' | t"
+              />
             </div>
-            <dl class="detail-list">
-              <div>
-                <dt>Latest staff count</dt>
-                <dd>{{ num(camera.latestStaffCount) }}</dd>
-              </div>
-              <div>
-                <dt>Last observation</dt>
-                <dd>{{ date(camera.lastReceivedAtUtc, report.period.timeZoneId) }}</dd>
-              </div>
-              <div>
-                <dt>Average staff</dt>
-                <dd>{{ num(camera.averageStaffCount, 1) }}</dd>
-              </div>
-              <div>
-                <dt>Peak staff</dt>
-                <dd>{{ num(camera.peakStaffCount) }}</dd>
-              </div>
-            </dl>
-            <app-chart
-              [title]="camera.cameraName + ' · Staff presence'"
-              [points]="staffPoints(camera.series, report.period)"
-              primaryLabel="Average staff"
-              secondaryLabel="Peak staff"
-            />
-          </section>
-        }
+          }
+        </div>
       }
     }
   </section>
   @if (selectedZone()) {
-    <app-dialog title="Zone analysis" (closed)="selectedZone.set(null)">
+    <app-dialog [title]="'Zone analysis' | t" (closed)="selectedZone.set(null)">
       @if (zoneLoading() || zoneError()) {
         <app-state
           [loading]="zoneLoading()"
@@ -492,31 +679,31 @@
           </div>
           <dl class="detail-list">
             <div>
-              <dt>Average / peak occupancy</dt>
+              <dt>{{ 'Average / peak occupancy' | t }}</dt>
               <dd>
                 {{ num(detail.summary.averageOccupancy, 1) }} /
                 {{ num(detail.summary.peakOccupancy) }}
               </dd>
             </div>
             <div>
-              <dt>Peak position</dt>
+              <dt>{{ 'Peak position' | t }}</dt>
               <dd>{{ peakTime(detail.summary.peakAtUtc, detail.summary.peakAtSourceTimeMs) }}</dd>
             </div>
             <div>
-              <dt>Reported dwell (latest sample)</dt>
+              <dt>{{ 'Reported dwell (latest sample)' | t }}</dt>
               <dd>{{ duration(detail.summary.reportedAverageDwellSeconds) }}</dd>
             </div>
             <div>
-              <dt>Estimated historical dwell</dt>
+              <dt>{{ 'Estimated historical dwell' | t }}</dt>
               <dd>{{ duration(detail.summary.estimatedHistoricalAverageDwellSeconds) }}</dd>
             </div>
           </dl>
           @for (zone of detail.series.zones; track zone.zoneId) {
             <app-chart
-              [title]="zone.zoneName + ' · Occupancy'"
+              [title]="zone.zoneName + (' · Occupancy' | t)"
               [points]="points(zone.series, detail.series.period)"
-              primaryLabel="Average"
-              secondaryLabel="Peak"
+              [primaryLabel]="'Average' | t"
+              [secondaryLabel]="'Peak' | t"
             />
           }
         </div>

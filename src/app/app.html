@@ -1,44 +1,69 @@
-<a class="skip-link" href="#main-content">Skip to content</a>
+<a class="skip-link" href="#main-content">{{ 'topbar.skipToContent' | t }}</a>
 <ng-template #navigationTemplate>
   <nav aria-label="Main navigation">
-    @for (item of navigation; track item.path) {
-      @if (item.group) {
-        <p class="nav-group">{{ item.group }}</p>
+    @for (item of navigation; track item.path; let i = $index) {
+      @if (item.groupKey) {
+        <p class="nav-group" [style.--item-index]="i">{{ item.groupKey | t }}</p>
       }
       <a
         [routerLink]="item.path"
         routerLinkActive="nav-active"
         [routerLinkActiveOptions]="{ exact: item.path === '/' }"
         ariaCurrentWhenActive="page"
+        [title]="sidebarCollapsed() ? '' : (item.key | t)"
         (click)="menuOpen.set(false)"
-        ><app-icon [name]="item.icon" />{{ item.label }}</a
+        [style.--item-index]="i"
       >
+        <app-icon [name]="item.icon" />
+        <span class="nav-label">{{ item.key | t }}</span>
+        <span class="nav-flyout">
+          <span class="flyout-pip" aria-hidden="true"></span>
+          <span class="flyout-text">{{ item.key | t }}</span>
+          <span class="flyout-arrow" aria-hidden="true">&rarr;</span>
+        </span>
+      </a>
     }
   </nav>
 </ng-template>
-<aside class="sidebar">
-  <a class="brand" routerLink="/" aria-label="AI Vision home"
-    ><span class="brand-symbol"><app-icon name="eye" /></span
-    ><span>vision<span class="brand-dot">.</span><small>Camera analytics</small></span></a
-  >
-  <ng-container *ngTemplateOutlet="navigationTemplate" />
-  <div class="sidebar-foot">
-    <span class="workspace-mark"><app-icon name="zones" /></span>
-    <div><strong>Analytics workspace</strong><small>Observe. Understand. Act.</small></div>
+<aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
+  <div class="sidebar-brand-wrapper">
+    <a class="brand" routerLink="/" [attr.aria-label]="'NILETRONIX - Camera analytics' | t">
+      @if (sidebarCollapsed()) {
+        <img src="/niletronix-icon.png" alt="NILETRONIX" class="brand-icon-collapsed" />
+      } @else {
+        <div class="brand-logo">
+          <img src="/niletronix-icon.png" alt="NILETRONIX" class="brand-emblem" />
+          <div class="brand-text-block">
+            <span class="brand-title">NILETRONIX</span>
+            <span class="brand-subtitle">{{ 'brand.subtitle' | t }}</span>
+          </div>
+        </div>
+      }
+    </a>
+    <button
+      class="sidebar-toggle-btn"
+      type="button"
+      [attr.aria-label]="sidebarCollapsed() ? ('sidebar.expand' | t) : ('sidebar.collapse' | t)"
+      [title]="sidebarCollapsed() ? ('sidebar.expand' | t) : ('sidebar.collapse' | t)"
+      (click)="toggleSidebar()"
+    >
+      <app-icon [name]="sidebarCollapsed() ? 'right' : 'left'" />
+    </button>
   </div>
+  <ng-container *ngTemplateOutlet="navigationTemplate" />
 </aside>
-<div class="workspace">
+<div class="workspace" [class.sidebar-collapsed]="sidebarCollapsed()">
   <header class="topbar">
     <button
       class="icon-button mobile-menu"
-      aria-label="Open navigation"
+      [attr.aria-label]="'Open navigation' | t"
       (click)="menuOpen.set(true)"
     >
       <app-icon name="menu" />
     </button>
     <div class="site-context">
       <app-icon name="location" /><label class="visually-hidden" for="workspace-site"
-        >Current site</label
+        >{{ 'topbar.currentSite' | t }}</label
       >
       <select
         id="workspace-site"
@@ -50,52 +75,76 @@
           <option value="">
             {{
               context.sitesLoading()
-                ? 'Loading sites...'
+                ? ('topbar.loadingSites' | t)
                 : context.sitesError()
-                  ? 'Sites unavailable'
-                  : 'No sites registered'
+                  ? ('topbar.sitesUnavailable' | t)
+                  : ('topbar.noSites' | t)
             }}
           </option>
         }
         @for (site of context.sites(); track site.id) {
-          <option [value]="site.id">{{ site.name }}{{ site.isActive ? '' : ' · Inactive' }}</option>
+          <option [value]="site.id">{{ site.name }}{{ site.isActive ? '' : (' · ' + ('topbar.inactive' | t)) }}</option>
         }</select
       ><span class="context-divider"></span
-      ><span class="timezone">{{ context.site()?.timeZoneId || 'UTC' }}</span>
+      ><span class="timezone">{{ context.site()?.timeZoneId || ('UTC' | t) }}</span>
     </div>
-    <button
-      class="connection-button"
-      (click)="statusOpen.set(true)"
-      aria-label="Open system status"
-    >
-      <span
-        class="connection-dot"
-        [class.connected]="!context.monitoringError() && context.monitoring()"
-        aria-hidden="true"
-      ></span
-      ><span>{{
-        context.monitoringLoading()
-          ? 'Checking connection'
-          : context.monitoringError()
-            ? 'Server unavailable'
-            : 'System status'
-      }}</span
-      ><app-icon name="down" />
-    </button>
+    <div class="topbar-actions">
+      <button
+        class="lang-switch-btn"
+        type="button"
+        (click)="i18n.toggleLang()"
+        [attr.aria-label]="i18n.currentLang() === 'ar' ? 'Switch to English' : 'التغيير إلى العربية'"
+        [title]="i18n.currentLang() === 'ar' ? 'English' : 'العربية'"
+      >
+        <app-icon name="globe" />
+        <span class="lang-text">{{ i18n.currentLang() === 'ar' ? 'EN' : 'عربي' }}</span>
+      </button>
+      <button
+        class="connection-button"
+        (click)="statusOpen.set(true)"
+        [attr.aria-label]="'Open system status' | t"
+      >
+        <span
+          class="connection-dot"
+          [class.connected]="!context.monitoringError() && context.monitoring()"
+          aria-hidden="true"
+        ></span
+        ><span>{{
+          context.monitoringLoading()
+            ? ('topbar.checkingConnection' | t)
+            : context.monitoringError()
+              ? ('topbar.serverUnavailable' | t)
+              : ('topbar.systemStatus' | t)
+        }}</span
+        ><app-icon name="down" />
+      </button>
+      <button class="icon-button topbar-bell" [attr.aria-label]="'topbar.notifications' | t" [title]="'topbar.notifications' | t">
+        <app-icon name="bell" />
+      </button>
+      <div class="topbar-avatar" [title]="'topbar.operatorProfile' | t">
+        <app-icon name="user" />
+      </div>
+    </div>
   </header>
   <main id="main-content" tabindex="-1"><router-outlet /></main>
   <footer class="workspace-footer">
-    <span>AI Vision · Camera analytics</span
-    ><span>{{ realtime.mode() }} · Latest persisted observations</span>
+    <div class="footer-brand">
+      <img src="/niletronix-logo.png" alt="NILETRONIX" class="footer-logo" />
+      <span class="footer-sep">&bull;</span>
+      <span>{{ 'footer.brand' | t }}</span>
+    </div>
+    <div class="footer-meta">
+      <span>{{ (realtime.mode() | t) }} &bull; {{ 'footer.observations' | t }}</span>
+    </div>
   </footer>
 </div>
 @if (menuOpen()) {
-  <app-dialog title="Workspace" (closed)="menuOpen.set(false)"
+  <app-dialog [title]="'nav.workspace' | t" (closed)="menuOpen.set(false)"
     ><ng-container *ngTemplateOutlet="navigationTemplate"
   /></app-dialog>
 }
 @if (statusOpen()) {
-  <app-dialog title="System status" (closed)="statusOpen.set(false)"
+  <app-dialog [title]="'topbar.systemStatus' | t" (closed)="statusOpen.set(false)"
     ><app-system-status
   /></app-dialog>
 }

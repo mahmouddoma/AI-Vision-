@@ -192,3 +192,25 @@ test('conflicting edit requires a fresh row version before retrying', async ({ p
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(requestBody!['rowVersion']).toBe('AgIDBAUGBwg=');
 });
+test('sidebar collapse and expand toggle', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Sidebar collapse/expand is desktop-specific; mobile uses drawer');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  await expect(page.locator('.sidebar .brand-logo')).toBeVisible();
+  await expect(page.locator('.sidebar')).toHaveCSS('width', '232px');
+
+  await page.locator('.sidebar-toggle-btn').click();
+  await expect(page.locator('.sidebar.collapsed')).toBeVisible();
+  await expect(page.locator('.sidebar .brand-icon-collapsed')).toBeVisible();
+  await expect(page.locator('.sidebar')).toHaveCSS('width', '68px');
+
+  const firstLink = page.locator('.sidebar nav a').first();
+  await firstLink.hover();
+  await expect(firstLink.locator('.nav-flyout')).toBeVisible();
+  await expect(firstLink.locator('.nav-flyout')).toContainText('Overview');
+
+  await page.locator('.sidebar-toggle-btn').click();
+  await expect(page.locator('.sidebar.collapsed')).toHaveCount(0);
+  await expect(page.locator('.sidebar .brand-logo')).toBeVisible();
+  await expect(page.locator('.sidebar')).toHaveCSS('width', '232px');
+});
