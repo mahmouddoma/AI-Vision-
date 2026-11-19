@@ -3,6 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AppContext } from './core/context';
 import { Realtime } from './core/realtime';
+import { SystemHealthStore } from './core/system-health';
 import { I18nService, TranslatePipe } from './core/i18n';
 import { Icon, IconName } from './ui/icon';
 import { Dialog } from './ui/dialog';
@@ -28,6 +29,7 @@ import { Auth } from './core/auth';
 export class App {
   readonly auth = inject(Auth);
   readonly context = inject(AppContext);
+  readonly health = inject(SystemHealthStore);
   readonly realtime = inject(Realtime);
   readonly i18n = inject(I18nService);
   readonly menuOpen = signal(false);

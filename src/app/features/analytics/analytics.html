@@ -406,6 +406,30 @@
           </div>
         </div>
 
+        <div class="analytics-chart-grid">
+          @for (zone of data()?.trends?.zones; track zone.zoneId) {
+            <div class="analytics-chart-card">
+              <app-chart
+                kind="groupedBar"
+                palette="indigo"
+                [title]="zone.zoneName + (' · Inbound traffic' | t)"
+                [points]="points(zone.series, report.period, 'traffic')"
+                [primaryLabel]="'Zone arrivals' | t"
+                [secondaryLabel]="'Gate entries' | t"
+              />
+            </div>
+            <div class="analytics-chart-card">
+              <app-chart
+                kind="groupedBar"
+                palette="coral"
+                [title]="zone.zoneName + (' · Outbound traffic' | t)"
+                [points]="points(zone.series, report.period, 'departures')"
+                [primaryLabel]="'Zone departures' | t"
+                [secondaryLabel]="'Gate exits' | t"
+              />
+            </div>
+          }
+        </div>
         <section class="surface">
           <app-table [label]="'Traffic by zone' | t"
             ><table>
@@ -467,30 +491,6 @@
               </tbody></table
           ></app-table>
         </section>
-        <div class="analytics-chart-grid">
-          @for (zone of data()?.trends?.zones; track zone.zoneId) {
-            <div class="analytics-chart-card">
-              <app-chart
-                kind="groupedBar"
-                palette="indigo"
-                [title]="zone.zoneName + (' · Inbound traffic' | t)"
-                [points]="points(zone.series, report.period, 'traffic')"
-                [primaryLabel]="'Zone arrivals' | t"
-                [secondaryLabel]="'Gate entries' | t"
-              />
-            </div>
-            <div class="analytics-chart-card">
-              <app-chart
-                kind="groupedBar"
-                palette="coral"
-                [title]="zone.zoneName + (' · Outbound traffic' | t)"
-                [points]="points(zone.series, report.period, 'departures')"
-                [primaryLabel]="'Zone departures' | t"
-                [secondaryLabel]="'Gate exits' | t"
-              />
-            </div>
-          }
-        </div>
       }
       @if (tab() === 'dwell' && data()?.dwell; as report) {
         <section class="surface stack">

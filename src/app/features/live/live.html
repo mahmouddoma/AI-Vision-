@@ -103,6 +103,83 @@
     </div>
   </div>
 
+  @if (!feed().loading && feed().cameras.length) {
+    <div class="lv-grid">
+      <section class="surface lv-card">
+        <h2 class="lv-title">{{ 'live.cameraHealthMix' | t }}</h2>
+        <div class="lv-donut">
+          <svg
+            viewBox="0 0 100 100"
+            class="lv-svg"
+            role="img"
+            [attr.aria-label]="'live.cameraHealthMix' | t"
+          >
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#f1f5f9" stroke-width="12" />
+            @for (s of cameraHealthMix().slices; track s.key) {
+              @if (s.value > 0) {
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="none"
+                  [attr.stroke]="s.color"
+                  stroke-width="12"
+                  [attr.stroke-dasharray]="s.dasharray"
+                  [attr.stroke-dashoffset]="s.dashoffset"
+                  transform="rotate(-90 50 50)"
+                />
+              }
+            }
+            <text x="50" y="49" text-anchor="middle" class="lv-tot">
+              {{ num(cameraHealthMix().total) }}
+            </text>
+            <text x="50" y="63" text-anchor="middle" class="lv-sub">
+              {{ 'Cameras' | t }}
+            </text>
+          </svg>
+          <div class="lv-leg">
+            @for (s of cameraHealthMix().slices; track s.key) {
+              <div class="lv-row">
+                <span class="lv-dot" [style.background]="s.color"></span>
+                <span class="lv-lbl">{{ s.label | t }}</span>
+                <div class="lv-bar">
+                  <div
+                    class="lv-fill"
+                    [style.width.%]="s.percent"
+                    [style.background]="s.color"
+                  ></div>
+                </div>
+                <strong class="lv-val">{{ num(s.value) }}</strong>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="surface lv-card">
+        <app-chart
+          kind="groupedBar"
+          palette="sky"
+          [title]="'live.eligibleZoneOccupancy' | t"
+          [points]="eligibleZoneChartPoints()"
+          [primaryLabel]="'Occupancy' | t"
+          [secondaryLabel]="'Capacity' | t"
+        />
+      </section>
+
+      <section class="surface lv-card">
+        <app-chart
+          kind="groupedBar"
+          palette="indigo"
+          [title]="'live.cameraPerformance' | t"
+          [points]="cameraPerfChartPoints()"
+          [primaryLabel]="'fps' | t"
+          [secondaryLabel]="'staff' | t"
+        />
+      </section>
+    </div>
+  }
+
   <section class="surface">
     <header class="section-heading">
       <div>
@@ -343,14 +420,33 @@
                         <span class="tabular-sub">{{ num(zone.exit) }}</span>
                       </td>
                       <td class="cell-r">
-                        <span class="util-val" [class.util-configured]="zone.capacity != null">
-                          {{
-                            zone.capacity == null
-                              ? ('Not configured' | t)
-                              : num(zone.utilizationPercent, 1) +
-                                (zone.utilizationPercent == null ? '' : '%')
-                          }}
-                        </span>
+                        <div class="util-cell">
+                          <span class="util-val" [class.util-configured]="zone.capacity != null">
+                            {{
+                              zone.capacity == null
+                                ? ('Not configured' | t)
+                                : num(zone.utilizationPercent, 1) +
+                                  (zone.utilizationPercent == null ? '' : '%')
+                            }}
+                          </span>
+                          @if (zone.capacity != null && zone.utilizationPercent != null) {
+                            <div class="util-bar" aria-hidden="true">
+                              <div
+                                class="util-bar-fill"
+                                [class.is-warn]="
+                                  zone.utilizationPercent >= zone.warningThresholdPercent &&
+                                  zone.utilizationPercent < zone.criticalThresholdPercent
+                                "
+                                [class.is-crit]="
+                                  zone.utilizationPercent >= zone.criticalThresholdPercent
+                                "
+                                [style.width.%]="
+                                  zone.utilizationPercent > 100 ? 100 : zone.utilizationPercent
+                                "
+                              ></div>
+                            </div>
+                          }
+                        </div>
                       </td>
                       <td class="cell-r">
                         <span class="tabular-val">{{
@@ -403,47 +499,81 @@
     @if (zoneLoading() || zoneError()) {
       <app-state [loading]="zoneLoading()" [error]="zoneError()" (retry)="inspect(zone()!)" />
     } @else if (zone(); as zone) {
-      <div class="stack">
-        <h3>{{ zone.zoneName }}</h3>
-        <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
-        <dl class="detail-list">
-          <div>
-            <dt>{{ 'External zone ID' | t }}</dt>
-            <dd>{{ zone.externalZoneId }}</dd>
+      <div class="zd-body">
+        <div class="zd-head">
+          <div class="zone-cell" style="padding: 0">
+            <span class="camera-icon-badge"><app-icon name="location" /></span>
+            <div>
+              <h3>{{ zone.zoneName }}</h3>
+              <span class="tabular-sub">{{ zone.externalZoneId }}</span>
+            </div>
           </div>
-          <div>
-            <dt>{{ 'Internal zone ID' | t }}</dt>
-            <dd>{{ zone.zoneId }}</dd>
+          <div class="zone-status-group">
+            @if (zone.previousSession) {
+              <app-status value="Previous session" />
+            }
+            <app-status [value]="zone.isActive ? zone.dataFreshness : 'Inactive'" />
+            @if (zone.capacityStatus) {
+              <app-status [value]="zone.capacityStatus" />
+            }
           </div>
+        </div>
+
+        <div class="zd-kpis">
+          <div class="zd-kpi zd-teal">
+            <span class="tabular-sub">{{ 'tab.occupancy' | t }}</span>
+            <strong>{{ num(zone.occupancy) }}</strong>
+            <span class="tabular-sub"
+              >{{ 'Capacity' | t }}: {{ zone.capacity == null ? ('N/A' | t) : num(zone.capacity) }}</span
+            >
+          </div>
+          <div class="zd-kpi zd-sky">
+            <span class="tabular-sub">{{ 'metrics.arrivalsDepartures' | t }}</span>
+            <strong>{{ num(zone.zoneArrivals) }} / {{ num(zone.zoneDepartures) }}</strong>
+            <span class="tabular-sub">{{ 'metrics.gateInOut' | t }}: {{ num(zone.entry) }} / {{ num(zone.exit) }}</span>
+          </div>
+          <div class="zd-kpi zd-violet">
+            <span class="tabular-sub">{{ 'metrics.dwell' | t }}</span>
+            <strong>{{ duration(zone.reportedAverageDwellSeconds) }}</strong>
+            <span class="tabular-sub">{{ 'Longest active' | t }}: {{ duration(zone.longestActiveDwellSeconds) }}</span>
+          </div>
+        </div>
+
+        <dl class="zd-meta">
           <div>
-            <dt>{{ 'Session' | t }}</dt>
-            <dd>{{ zone.sessionId || ('N/A' | t) }}</dd>
+            <dt>{{ 'Last updated' | t }}</dt>
+            <dd>{{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}</dd>
           </div>
           <div>
             <dt>{{ 'Sequence / state version' | t }}</dt>
             <dd>{{ num(zone.sequence) }} / {{ num(zone.stateVersion) }}</dd>
           </div>
           <div>
-            <dt>{{ 'Occupancy / capacity' | t }}</dt>
-            <dd>{{ num(zone.occupancy) }} / {{ num(zone.capacity) }}</dd>
+            <dt>{{ 'Session' | t }}</dt>
+            <dd><code [title]="zone.sessionId || ''">{{ zone.sessionId || ('N/A' | t) }}</code></dd>
           </div>
           <div>
-            <dt>{{ 'Last updated' | t }}</dt>
-            <dd>{{ date(zone.lastUpdatedAtUtc, context.site()?.timeZoneId) }}</dd>
+            <dt>{{ 'Internal zone ID' | t }}</dt>
+            <dd><code [title]="zone.zoneId">{{ zone.zoneId }}</code></dd>
           </div>
         </dl>
+
         <p class="report-note">
           {{
             'Live counters are cumulative snapshots. Occupancy is directly reported and may differ from arrivals minus departures.'
               | t
           }}
         </p>
-        <a
-          class="button"
-          routerLink="/analytics"
-          [queryParams]="{ cameraId: zone.cameraId, zoneId: zone.zoneId }"
-          >{{ 'Open zone analytics' | t }} <app-icon name="arrow"
-        /></a>
+
+        <div class="zd-foot">
+          <a
+            class="button"
+            routerLink="/analytics"
+            [queryParams]="{ cameraId: zone.cameraId, zoneId: zone.zoneId }"
+            (click)="drawerOpen.set(false)"
+            >{{ 'Open zone analytics' | t }} <app-icon name="arrow"
+          /></a>
+        </div>
       </div>
     }
   </app-dialog>

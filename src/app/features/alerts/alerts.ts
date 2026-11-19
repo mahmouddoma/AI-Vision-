@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Observable, catchError, finalize, map, of, startWith, switchMap } from 'rxjs';
 import { AnalyticsAlert } from '../../core/smart-models';
@@ -21,17 +21,22 @@ import { TranslatePipe } from '../../core/i18n';
 import { StateView } from '../../ui/feedback';
 import { Table, Pagination } from '../../ui/table';
 import { MetricQualityView } from '../../ui/metric-quality';
+import { Icon } from '../../ui/icon';
+import { Status } from '../../ui/status';
 
 @Component({
   selector: 'app-alerts',
   imports: [
     FormsModule,
     RouterLink,
+    RouterLinkActive,
     TranslatePipe,
     StateView,
     Table,
     Pagination,
     MetricQualityView,
+    Icon,
+    Status,
   ],
   templateUrl: './alerts.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

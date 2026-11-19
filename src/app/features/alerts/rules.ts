@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, finalize, map, of, startWith, switchMap } from 'rxjs';
 import { UiError, apiError } from '../../core/api';
@@ -17,30 +17,72 @@ import { AppContext } from '../../core/context';
 import { TranslatePipe } from '../../core/i18n';
 import { StateView } from '../../ui/feedback';
 import { Table, Pagination } from '../../ui/table';
+import { Icon } from '../../ui/icon';
+import { Status } from '../../ui/status';
 
 @Component({
   selector: 'app-alert-rules',
-  imports: [FormsModule, RouterLink, TranslatePipe, StateView, Table, Pagination],
+  imports: [
+    FormsModule,
+    RouterLink,
+    RouterLinkActive,
+    TranslatePipe,
+    StateView,
+    Table,
+    Pagination,
+    Icon,
+    Status,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<header class="page-heading">
-      <div>
-        <h1>{{ 'Alert rules' | t }}</h1>
-        <a routerLink="/alerts">{{ 'Alerts' | t }}</a>
+  template: `<div class="stack">
+    <section class="analytics-command-bar">
+      <div class="analytics-cmd-top">
+        <div class="analytics-cmd-title">
+          <div class="page-title-badge" aria-hidden="true">
+            <app-icon name="filters" />
+          </div>
+          <h1>{{ 'Alert rules' | t }}</h1>
+        </div>
+        <div class="analytics-cmd-actions">
+          <nav class="subnav-pills" [attr.aria-label]="'Alerts' | t">
+            <a
+              routerLink="/alerts"
+              routerLinkActive="active-subnav"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="subnav-pill"
+            >
+              <app-icon name="bell" />
+              <span>{{ 'Alerts' | t }}</span>
+            </a>
+            <a routerLink="/alert-rules" routerLinkActive="active-subnav" class="subnav-pill">
+              <app-icon name="filters" />
+              <span>{{ 'Alert rules' | t }}</span>
+            </a>
+          </nav>
+          <a
+            [hidden]="!context.auth.canWrite(context.selectedSiteId())"
+            class="button"
+            routerLink="/alert-rules/new"
+            ><app-icon name="plus" />{{ 'Add rule' | t }}</a
+          >
+        </div>
       </div>
-      <a
-        [hidden]="!context.auth.canWrite(context.selectedSiteId())"
-        class="button"
-        routerLink="/alert-rules/new"
-        >{{ 'Add rule' | t }}</a
-      >
-    </header>
-    <section class="surface stack">
       <form class="toolbar" (submit)="$event.preventDefault(); page.set(1); reload()">
-        <label
-          >{{ 'Search' | t
-          }}<input name="search" [ngModel]="search()" (ngModelChange)="search.set($event)" /></label
-        ><button class="button secondary">{{ 'Search' | t }}</button>
+        <div class="field search-field">
+          <label for="rules-search">{{ 'Search' | t }}</label>
+          <div class="search-input">
+            <app-icon name="search" /><input
+              id="rules-search"
+              name="search"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+            />
+          </div>
+        </div>
+        <button class="button secondary">{{ 'Search' | t }}</button>
       </form>
+    </section>
+    <section class="surface stack">
       @if (error()) {
         <app-state [error]="error()" (retry)="error.set(null); reload()" />
       }
@@ -48,7 +90,7 @@ import { Table, Pagination } from '../../ui/table';
         <app-state [loading]="result().loading" [error]="result().error" (retry)="reload()" />
       } @else if (result().data; as data) {
         @if (!data.items.length) {
-          <app-state title="No matching rules" />
+          <app-state icon="filters" title="No matching rules" />
         } @else {
           <app-table label="Alert rules"
             ><table>
@@ -69,7 +111,7 @@ import { Table, Pagination } from '../../ui/table';
                     </th>
                     <td>{{ r.kind }}</td>
                     <td>{{ r.threshold }}</td>
-                    <td>{{ (r.isActive ? 'Active' : 'Inactive') | t }}</td>
+                    <td><app-status [value]="r.isActive ? 'Active' : 'Inactive'" /></td>
                     <td>
                       <button
                         class="button quiet"
@@ -92,7 +134,8 @@ import { Table, Pagination } from '../../ui/table';
           (changed)="page.set($event)"
         />
       }
-    </section>`,
+    </section>
+  </div>`,
 })
 export class Rules {
   private readonly api = inject(SmartApi);

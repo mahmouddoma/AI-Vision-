@@ -16,18 +16,24 @@ import { catchError, map, of, switchMap } from 'rxjs';
 import { gsap } from 'gsap';
 import { AppContext } from '../../core/context';
 import { Realtime, FeedState } from '../../core/realtime';
-import { calculateLiveOccupancy, describeLiveOccupancy } from '../../core/live-occupancy';
+import {
+  calculateLiveOccupancy,
+  describeLiveOccupancy,
+  isEligibleLiveCamera,
+  isEligibleLiveZone,
+} from '../../core/live-occupancy';
 import { LiveZone } from '../../core/models';
 import { Api, UiError, apiError } from '../../core/api';
 import { Icon } from '../../ui/icon';
 import { StateView } from '../../ui/feedback';
 import { Status } from '../../ui/status';
 import { Dialog } from '../../ui/dialog';
+import { Chart, ChartPoint } from '../../ui/chart';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 
 @Component({
   selector: 'app-live',
-  imports: [RouterLink, Icon, StateView, Status, Dialog, TranslatePipe],
+  imports: [RouterLink, Icon, StateView, Status, Dialog, Chart, TranslatePipe],
   templateUrl: './live.html',
   styleUrl: './live.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -104,6 +110,59 @@ export class Live {
   readonly occupancy = computed(() => this.occupancySummary().observedOccupancy);
   readonly occupancyView = computed(() =>
     describeLiveOccupancy(this.occupancySummary(), this.feed().loading),
+  );
+  readonly cameraHealthMix = computed(() => {
+    const s = this.occupancySummary();
+    const raw = [
+      { key: 'fresh', label: 'Fresh', value: s.freshCameras, color: '#10b981' },
+      { key: 'stale', label: 'Stale', value: s.staleCameras, color: '#f59e0b' },
+      { key: 'noRecent', label: 'No recent data', value: s.noRecentDataCameras, color: '#ef4444' },
+      {
+        key: 'other',
+        label: 'live.otherExcluded',
+        value: s.otherExcludedCameras,
+        color: '#6366f1',
+      },
+    ];
+    const total = s.totalCameras;
+    const circumference = 2 * Math.PI * 38;
+    let offset = 0;
+    const slices = raw.map((item) => {
+      const share = total > 0 ? item.value / total : 0;
+      const len = share * circumference;
+      const slice = {
+        ...item,
+        percent: share * 100,
+        dasharray: `${len.toFixed(2)} ${(circumference - len).toFixed(2)}`,
+        dashoffset: -offset,
+      };
+      offset += len;
+      return slice;
+    });
+    return { total, slices };
+  });
+  readonly eligibleZoneChartPoints = computed<ChartPoint[]>(() => {
+    if (this.feed().error) return [];
+    const points: ChartPoint[] = [];
+    for (const camera of this.feed().cameras) {
+      if (!isEligibleLiveCamera(camera)) continue;
+      for (const zone of camera.zones) {
+        if (!isEligibleLiveZone(zone, camera)) continue;
+        points.push({
+          label: `${camera.cameraName} · ${zone.zoneName}`,
+          value: zone.occupancy,
+          secondary: zone.capacity,
+        });
+      }
+    }
+    return points;
+  });
+  readonly cameraPerfChartPoints = computed<ChartPoint[]>(() =>
+    this.feed().cameras.map((camera) => ({
+      label: camera.cameraName,
+      value: camera.processingFps,
+      secondary: camera.staffCount,
+    })),
   );
   private readonly zoneSnapshot = signal<LiveZone | null>(null);
   readonly zone = computed(() => {

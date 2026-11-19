@@ -1,48 +1,76 @@
-<nav class="breadcrumbs" [attr.aria-label]="'Breadcrumb' | t">
-  <a routerLink="/alerts">{{ 'Alerts' | t }}</a
-  ><a routerLink="/alert-rules">{{ 'Alert rules' | t }}</a>
-</nav>
-<header class="page-heading">
-  <div>
-    <h1>{{ (id() ? 'Alert investigation' : 'Alerts') | t }}</h1>
-    <p>{{ 'Persistent alerts and observed recovery from the analytics server.' | t }}</p>
-  </div>
-  <button class="button secondary" (click)="reload()">{{ 'Refresh' | t }}</button>
-</header>
 <div class="stack">
-  @if (!id()) {
-    <form class="surface toolbar" (submit)="$event.preventDefault(); page.set(1); reload()">
-      <div class="field">
-        <label for="alerts-field-1">{{ 'Status' | t }}</label
-        ><select
-          id="alerts-field-1"
-          name="status"
-          [ngModel]="status()"
-          (ngModelChange)="status.set($event); page.set(1)"
-        >
-          <option value="">{{ 'All' | t }}</option>
-          @for (s of ['Active', 'Acknowledged', 'Resolved']; track s) {
-            <option [value]="s">{{ s | t }}</option>
-          }
-        </select>
+  <section class="analytics-command-bar">
+    <div class="analytics-cmd-top">
+      <div class="analytics-cmd-title">
+        <div class="page-title-badge" aria-hidden="true">
+          <app-icon name="bell" />
+        </div>
+        <h1>{{ (id() ? 'Alert investigation' : 'Alerts') | t }}</h1>
       </div>
-      <div class="field">
-        <label for="alerts-field-2">{{ 'Search' | t }}</label
-        ><input
-          id="alerts-field-2"
-          name="search"
-          [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
-        />
+      <div class="analytics-cmd-actions">
+        <nav class="subnav-pills" [attr.aria-label]="'Alerts' | t">
+          <a
+            routerLink="/alerts"
+            routerLinkActive="active-subnav"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="subnav-pill"
+          >
+            <app-icon name="bell" />
+            <span>{{ 'Alerts' | t }}</span>
+          </a>
+          <a routerLink="/alert-rules" routerLinkActive="active-subnav" class="subnav-pill">
+            <app-icon name="filters" />
+            <span>{{ 'Alert rules' | t }}</span>
+          </a>
+        </nav>
+        <button class="button secondary header-refresh-btn" (click)="reload()">
+          <app-icon name="refresh" />{{ 'Refresh' | t }}
+        </button>
       </div>
-      <button class="button secondary">{{ 'Search' | t }}</button>
-    </form>
-  }
+    </div>
+
+    @if (!id()) {
+      <form class="toolbar" (submit)="$event.preventDefault(); page.set(1); reload()">
+        <div class="field search-field">
+          <label for="alerts-field-2">{{ 'Search' | t }}</label>
+          <div class="search-input">
+            <app-icon name="search" /><input
+              id="alerts-field-2"
+              name="search"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event)"
+            />
+          </div>
+        </div>
+        <div class="field">
+          <label for="alerts-field-1">{{ 'Status' | t }}</label
+          ><select
+            id="alerts-field-1"
+            name="status"
+            [ngModel]="status()"
+            (ngModelChange)="status.set($event); page.set(1)"
+          >
+            <option value="">{{ 'All' | t }}</option>
+            @for (s of ['Active', 'Acknowledged', 'Resolved']; track s) {
+              <option [value]="s">{{ s | t }}</option>
+            }
+          </select>
+        </div>
+        <button class="button secondary">{{ 'Search' | t }}</button>
+      </form>
+    }
+  </section>
   @if (result().loading || result().error) {
     <app-state [loading]="result().loading" [error]="result().error" (retry)="reload()" />
   } @else if (result().alert; as a) {
     <section class="surface stack">
-      <h2>{{ a.kind }} · {{ a.severity }} · {{ a.status }}</h2>
+      <div class="section-heading">
+        <h2>{{ a.kind }}</h2>
+        <div class="button-group">
+          <app-status [value]="a.severity" />
+          <app-status [value]="a.status" />
+        </div>
+      </div>
       <dl class="detail-list">
         <div>
           <dt>{{ 'Opened' | t }}</dt>
@@ -116,7 +144,7 @@
   } @else if (result().list; as list) {
     <section class="surface">
       @if (!list.items.length) {
-        <app-state title="No matching alerts" />
+        <app-state icon="bell" title="No matching alerts" />
       } @else {
         <app-table label="Alerts"
           ><table>
@@ -135,8 +163,8 @@
                   <th>
                     <a [routerLink]="['/alerts', a.id]">{{ a.kind }}</a>
                   </th>
-                  <td>{{ a.severity }}</td>
-                  <td>{{ a.status }}</td>
+                  <td><app-status [value]="a.severity" /></td>
+                  <td><app-status [value]="a.status" /></td>
                   <td>{{ format.timestamp(a.openedAtUtc) }}</td>
                   <td><app-metric-quality [value]="a.evidence.quality" /></td>
                 </tr>

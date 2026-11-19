@@ -106,22 +106,21 @@
       </button>
       <button
         class="connection-button"
+        data-testid="topbar-health-btn"
+        [attr.data-health]="health.state().overallStatus"
         [disabled]="!auth.administrator()"
         (click)="statusOpen.set(true)"
         [attr.aria-label]="'Open system status' | t"
+        [attr.title]="
+          (health.state().reasonKey || 'health.status.' + health.state().overallStatus) | t
+        "
       >
         <span
           class="connection-dot"
-          [class.connected]="!context.monitoringError() && context.monitoring()"
+          [attr.data-health]="health.state().overallStatus"
           aria-hidden="true"
         ></span
-        ><span>{{
-          context.monitoringLoading()
-            ? ('topbar.checkingConnection' | t)
-            : context.monitoringError()
-              ? ('topbar.serverUnavailable' | t)
-              : ('topbar.systemStatus' | t)
-        }}</span
+        ><span>{{ 'health.status.' + health.state().overallStatus | t }}</span
         ><app-icon name="down" />
       </button>
       <a
