@@ -9,7 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { gsap } from 'gsap';
@@ -29,8 +29,7 @@ import {
   ZonePeriod,
   ZoneResult,
 } from '../../core/models';
-import { Chart } from '../../ui/chart';
-import { Dialog } from '../../ui/dialog';
+import { Chart, ChartPoint } from '../../ui/chart';
 import { StateView } from '../../ui/feedback';
 import { Icon, IconName } from '../../ui/icon';
 import { Quality } from '../../ui/quality';
@@ -53,7 +52,17 @@ interface AnalyticsData {
 }
 @Component({
   selector: 'app-analytics',
-  imports: [ReportFilters, Chart, Dialog, StateView, Icon, Quality, Status, Table, TranslatePipe],
+  imports: [
+    ReportFilters,
+    Chart,
+    StateView,
+    Icon,
+    Quality,
+    Status,
+    Table,
+    TranslatePipe,
+    RouterLink,
+  ],
   templateUrl: './analytics.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -104,6 +113,25 @@ export class Analytics {
       data?.staff?.period
     );
   });
+  readonly rankingPoints = computed<ChartPoint[]>(() =>
+    (this.data()?.rankings?.items ?? []).map((item) => ({
+      label: item.zoneName,
+      value: item.dataQuality.kind === 'InsufficientData' ? null : item.value,
+      quality: item.dataQuality,
+    })),
+  );
+  readonly dwellPoints = computed<ChartPoint[]>(() =>
+    (this.data()?.dwell?.zones ?? []).map((zone) => ({
+      label: zone.zoneName,
+      value:
+        zone.dataQuality.kind === 'InsufficientData' ? null : zone.reportedAverageDwellSeconds,
+      secondary:
+        zone.dataQuality.kind === 'InsufficientData'
+          ? null
+          : zone.estimatedHistoricalAverageDwellSeconds,
+      quality: zone.dataQuality,
+    })),
+  );
   readonly empty = computed(() => {
     const data = this.data();
     if (!data) return true;
@@ -146,7 +174,7 @@ export class Analytics {
     afterNextRender(() => {
       this.animateEntrance();
     });
-    const tab = this.route.snapshot.queryParamMap.get('tab');
+    const tab = this.route.snapshot.data['tab'] ?? this.route.snapshot.queryParamMap.get('tab');
     if (this.tabs.some((item) => item.key === tab)) this.tab.set(tab as Tab);
     toObservable(this.request)
       .pipe(
@@ -267,42 +295,25 @@ export class Analytics {
 
     const host = this.elementRef.nativeElement as HTMLElement;
     const ctx = gsap.context(() => {
-      gsap.from('.page-heading', {
-        opacity: 0,
-        y: -10,
-        duration: 0.45,
-        ease: 'power2.out',
-      });
-      gsap.from('app-report-filters', {
-        opacity: 0,
-        y: 12,
-        duration: 0.45,
-        ease: 'power2.out',
-        delay: 0.08,
-      });
-      gsap.from('.tabs button', {
-        opacity: 0,
-        y: 8,
-        duration: 0.35,
-        stagger: 0.04,
-        ease: 'power2.out',
-        delay: 0.16,
-      });
-      gsap.from('.report-meta-strip', {
-        opacity: 0,
-        y: 8,
-        duration: 0.35,
-        ease: 'power2.out',
-        delay: 0.24,
-      });
-      gsap.from('.kpi-col, .analytics-chart-card, .surface', {
-        opacity: 0,
-        y: 14,
-        duration: 0.4,
-        stagger: 0.05,
-        ease: 'power2.out',
-        delay: 0.28,
-      });
+      if (host.querySelector('.page-heading')) {
+        gsap.from('.page-heading', {
+          opacity: 0,
+          y: -10,
+          duration: 0.4,
+          ease: 'power2.out',
+          clearProps: 'opacity,transform',
+        });
+      }
+      if (host.querySelector('app-report-filters')) {
+        gsap.from('app-report-filters', {
+          opacity: 0,
+          y: 12,
+          duration: 0.4,
+          ease: 'power2.out',
+          delay: 0.06,
+          clearProps: 'opacity,transform',
+        });
+      }
     }, host);
 
     this.destroy.onDestroy(() => ctx.revert());

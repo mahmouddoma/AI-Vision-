@@ -1,0 +1,221 @@
+<nav class="breadcrumbs" [attr.aria-label]="'Breadcrumb' | t">
+  <a routerLink="/alert-rules">{{ 'Alert rules' | t }}</a
+  ><span>/ {{ (id() ? 'Edit rule' : 'Add rule') | t }}</span>
+</nav>
+<header class="page-heading">
+  <h1>{{ (id() ? 'Edit rule' : 'Add rule') | t }}</h1>
+</header>
+@if (loading()) {
+  <app-state [loading]="true" />
+}
+<section class="surface">
+  <form class="form-grid" #form="ngForm" (ngSubmit)="save()">
+    <fieldset
+      class="full"
+      [disabled]="
+        loading() || saving() || !context.auth.canWrite(siteId() || context.selectedSiteId())
+      "
+    >
+      <div class="form-grid">
+        <div class="field">
+          <label for="rule-editor-field-1">{{ 'Name' | t }}</label
+          ><input
+            id="rule-editor-field-1"
+            name="name"
+            [(ngModel)]="name"
+            required
+            maxlength="160"
+          />
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-2">{{ 'Kind' | t }}</label
+          ><select
+            id="rule-editor-field-2"
+            name="kind"
+            [(ngModel)]="kind"
+            [disabled]="!!id()"
+            (ngModelChange)="zoneId = ''; allowVideo = false"
+          >
+            @for (k of kinds; track k) {
+              <option [value]="k">{{ k }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-3">{{ 'Camera' | t }}</label>
+          @if (context.auth.administrator()) {
+            <select
+              id="rule-editor-field-3"
+              name="camera"
+              [ngModel]="cameraId()"
+              (ngModelChange)="cameraId.set($event); zoneId = ''"
+              [disabled]="!!id()"
+              required
+            >
+              <option value="">{{ 'Select camera' | t }}</option>
+              @for (c of cameras(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          } @else {
+            <input
+              id="rule-editor-field-3"
+              name="camera"
+              [ngModel]="cameraId()"
+              (ngModelChange)="cameraId.set($event); zoneId = ''"
+              [disabled]="!!id()"
+              required
+              placeholder="GUID"
+            />
+          }
+        </div>
+        @if (zoneScoped()) {
+          <div class="field">
+            <label for="rule-editor-field-4">{{ 'Zone' | t }}</label>
+            @if (context.auth.administrator()) {
+              <select
+                id="rule-editor-field-4"
+                name="zone"
+                [(ngModel)]="zoneId"
+                [disabled]="!!id()"
+                required
+              >
+                <option value="">{{ 'Select zone' | t }}</option>
+                @for (z of zones(); track z.id) {
+                  <option [value]="z.id">{{ z.name }}</option>
+                }
+              </select>
+            } @else {
+              <input
+                id="rule-editor-field-4"
+                name="zone"
+                [ngModel]="zoneId"
+                (ngModelChange)="zoneId = $event"
+                [disabled]="!!id()"
+                required
+                placeholder="GUID"
+              />
+            }
+          </div>
+        }
+        <div class="field">
+          <label for="rule-editor-field-5">{{ 'Severity' | t }}</label
+          ><select id="rule-editor-field-5" name="severity" [(ngModel)]="severity">
+            <option value="Warning">{{ 'Warning' | t }}</option>
+            <option value="Critical">{{ 'Critical' | t }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-6">{{ 'Threshold' | t }}</label
+          ><input
+            id="rule-editor-field-6"
+            type="number"
+            name="threshold"
+            [(ngModel)]="threshold"
+            required
+            min="0.001"
+            [max]="kind === 'CameraNoRecentData' ? 86400 : 1000000000"
+          />
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-7">{{ 'Window seconds' | t }}</label
+          ><input
+            id="rule-editor-field-7"
+            type="number"
+            name="window"
+            [(ngModel)]="windowSeconds"
+            required
+            min="1"
+            max="3600"
+            step="1"
+          />
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-8">{{ 'Minimum observed seconds' | t }}</label
+          ><input
+            id="rule-editor-field-8"
+            type="number"
+            name="observed"
+            [(ngModel)]="minimumObservedSeconds"
+            required
+            min="0"
+            [max]="windowSeconds"
+            step="1"
+          />
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-9">{{ 'Recovery seconds' | t }}</label
+          ><input
+            id="rule-editor-field-9"
+            type="number"
+            name="recovery"
+            [(ngModel)]="recoverySeconds"
+            required
+            min="1"
+            [max]="windowSeconds"
+            step="1"
+          />
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-10">{{
+            'Cooldown seconds (server default when empty)' | t
+          }}</label
+          ><input
+            id="rule-editor-field-10"
+            type="number"
+            name="cooldown"
+            [(ngModel)]="cooldownSeconds"
+            min="0"
+            max="86400"
+            step="1"
+          />
+        </div>
+        <div class="field">
+          <label for="rule-editor-field-11">{{
+            'Minimum coverage % (server default when empty)' | t
+          }}</label
+          ><input
+            id="rule-editor-field-11"
+            type="number"
+            name="coverage"
+            [(ngModel)]="minimumCoveragePercent"
+            min="0.001"
+            max="100"
+          />
+        </div>
+        <label
+          ><input
+            type="checkbox"
+            name="video"
+            [(ngModel)]="allowVideo"
+            [disabled]="kind === 'CameraNoRecentData'"
+          />{{ 'Allow video' | t }}</label
+        >
+      </div>
+    </fieldset>
+    @if (validation()) {
+      <p class="field-error full" role="alert">{{ validation() | t }}</p>
+    }
+    @if (error(); as e) {
+      <div class="notice error full" role="alert">
+        <p>{{ e.message }}</p>
+        @for (field of errorFields(e); track $index) {
+          <p>{{ field }}</p>
+        }
+        @if (id()) {
+          <button class="button secondary" type="button" (click)="reload()">
+            {{ 'Reload latest record' | t }}
+          </button>
+        }
+      </div>
+    }
+    <div class="button-group full">
+      <button
+        class="button"
+        [disabled]="form.invalid || loading() || saving() || error()?.conflict"
+      >
+        {{ 'Save' | t }}</button
+      ><a class="button secondary" routerLink="/alert-rules">{{ 'Cancel' | t }}</a>
+    </div>
+  </form>
+</section>

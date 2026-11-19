@@ -13,7 +13,9 @@ import {
   ZoneEvent,
 } from './realtime';
 import { LiveCamera, LiveZone } from './models';
+import { calculateLiveOccupancy } from './live-occupancy';
 import { RUNTIME_CONFIG } from './runtime-config';
+import { AlertChanged } from './smart-models';
 const config = {
   apiBaseUrl: 'http://localhost:5080/api/v1',
   hubPath: 'http://localhost:5080/hubs/analytics',
@@ -102,8 +104,130 @@ describe('realtime ordering', () => {
       )[0].zones[0].occupancy,
     ).toBe(5);
   });
+  it('propagates Fresh-to-Stale and NoRecentData transitions to zones and excludes them from live occupancy', () => {
+    const freshCam: LiveCamera = {
+      ...camera,
+      sourceType: 'live',
+      analyticsStatus: 'running',
+      dataFreshness: 'Fresh',
+      zones: [{ ...zone, previousSession: false, dataFreshness: 'Fresh', occupancy: 14 }],
+    };
+    expect(calculateLiveOccupancy([freshCam]).observedOccupancy).toBe(14);
+
+    const staleCameras = applyCameraEvent([freshCam], {
+      cameraId: 'camera',
+      siteId: 'site',
+      sessionId: 'new-session',
+      stateVersion: 21,
+      dataFreshness: 'Stale',
+      receivedAtUtc: '2026-11-19T10:05:00Z',
+    });
+    expect(staleCameras[0].dataFreshness).toBe('Stale');
+    expect(staleCameras[0].zones[0].dataFreshness).toBe('Stale');
+    expect(calculateLiveOccupancy(staleCameras).observedOccupancy).toBeNull();
+    expect(calculateLiveOccupancy(staleCameras).staleCameras).toBe(1);
+  });
+  it('excludes previous-session zones on session change until new-session zone metrics arrive', () => {
+    const freshCam: LiveCamera = {
+      ...camera,
+      sourceType: 'live',
+      analyticsStatus: 'running',
+      dataFreshness: 'Fresh',
+      zones: [{ ...zone, previousSession: false, dataFreshness: 'Fresh', occupancy: 12 }],
+    };
+    const switched = applyCameraEvent([freshCam], {
+      cameraId: 'camera',
+      siteId: 'site',
+      sessionId: 'session-2',
+      stateVersion: 21,
+      dataFreshness: 'Fresh',
+      receivedAtUtc: '2026-11-19T10:06:00Z',
+    });
+    expect(switched[0].zones[0].previousSession).toBe(true);
+    expect(calculateLiveOccupancy(switched).observedOccupancy).toBeNull();
+
+    const updated = applyZoneEvent(switched, {
+      cameraId: 'camera',
+      zoneId: 'zone',
+      sessionId: 'session-2',
+      sequence: 1,
+      stateVersion: 22,
+      occupancy: 4,
+      arrivals: 4,
+      departures: 0,
+      entry: 4,
+      exit: 0,
+      wrongWayIn: 0,
+      wrongWayOut: 0,
+      reportedAverageDwellSeconds: 10,
+      activeVisitorsCount: 4,
+      longestActiveDwellSeconds: 10,
+      receivedAtUtc: '2026-11-19T10:06:05Z',
+    });
+    expect(updated[0].zones[0].previousSession).toBe(false);
+    expect(calculateLiveOccupancy(updated).observedOccupancy).toBe(4);
+  });
 });
 describe('realtime lifecycle', () => {
+  it('coalesces ordered alert invalidations, ignores other sites and resyncs after reconnect without admin REST requests', async () => {
+    vi.useFakeTimers();
+    const handlers = new Map<string, (event: AlertChanged) => void>();
+    let reconnect: (() => Promise<void>) | undefined;
+    const hub = {
+      state: HubConnectionState.Disconnected,
+      on: vi.fn((name: string, handler: (event: AlertChanged) => void) =>
+        handlers.set(name, handler),
+      ),
+      onreconnected: vi.fn((callback: () => Promise<void>) => (reconnect = callback)),
+      invoke: vi.fn().mockResolvedValue(undefined),
+      start: vi.fn(async () => {
+        hub.state = HubConnectionState.Connected;
+      }),
+      stop: vi.fn().mockResolvedValue(undefined),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RUNTIME_CONFIG, useValue: config },
+        { provide: HUB_FACTORY, useValue: () => hub as unknown as HubConnection },
+      ],
+    });
+    const invalidation = vi.fn();
+    const subscription = TestBed.inject(Realtime).watchAlertChanges('site').subscribe(invalidation);
+    try {
+      await vi.advanceTimersByTimeAsync(500);
+      expect(invalidation).toHaveBeenCalledTimes(1);
+      const event: AlertChanged = {
+        alertId: 'alert',
+        cameraId: 'camera',
+        siteId: 'site',
+        stateVersion: 2,
+        status: 'Active',
+      };
+      const emit = handlers.get('AnalyticsAlertChanged')!;
+      emit({ ...event, siteId: 'different-site' });
+      emit(event);
+      emit(event);
+      emit({ ...event, stateVersion: 1 });
+      await vi.advanceTimersByTimeAsync(500);
+      expect(invalidation).toHaveBeenCalledTimes(2);
+      emit(event);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(invalidation).toHaveBeenCalledTimes(2);
+      await reconnect!();
+      await vi.advanceTimersByTimeAsync(500);
+      expect(invalidation).toHaveBeenCalledTimes(3);
+      TestBed.inject(HttpTestingController).verify();
+    } finally {
+      subscription.unsubscribe();
+      await Promise.resolve();
+      await Promise.resolve();
+      vi.useRealTimers();
+    }
+    expect(hub.invoke).toHaveBeenCalledWith('UnsubscribeFromSite', 'site');
+    expect(hub.stop).toHaveBeenCalled();
+  });
   it('resubscribes and resyncs REST after reconnect, then leaves the group', async () => {
     let reconnect: (() => Promise<void>) | undefined;
     const hub = {

@@ -18,6 +18,8 @@ import {
 } from 'rxjs';
 import { Api, UiError, apiError } from './api';
 import { LiveCamera, LiveSite } from './models';
+import { AlertChanged } from './smart-models';
+import { Auth } from './auth';
 
 export interface CameraEvent {
   cameraId: string;
@@ -55,6 +57,8 @@ export function applyCameraEvent(cameras: LiveCamera[], event: CameraEvent): Liv
     if (camera.cameraId !== event.cameraId || event.stateVersion <= (camera.stateVersion ?? -1))
       return camera;
     const changedSession = camera.sessionId !== event.sessionId;
+    const nextFreshness = event.dataFreshness ?? camera.dataFreshness;
+    const freshnessDegraded = event.dataFreshness !== undefined && event.dataFreshness !== 'Fresh';
     return {
       ...camera,
       sessionId: event.sessionId,
@@ -62,13 +66,18 @@ export function applyCameraEvent(cameras: LiveCamera[], event: CameraEvent): Liv
       lastSequence: event.sequence ?? camera.lastSequence,
       sourceType: event.sourceType ?? camera.sourceType,
       analyticsStatus: event.analyticsStatus ?? camera.analyticsStatus,
-      dataFreshness: event.dataFreshness ?? camera.dataFreshness,
+      dataFreshness: nextFreshness,
       processingFps: event.processingFps === undefined ? camera.processingFps : event.processingFps,
       staffCount: event.staffCount === undefined ? camera.staffCount : event.staffCount,
       lastReceivedAtUtc: event.receivedAtUtc,
-      zones: changedSession
-        ? camera.zones.map((zone) => ({ ...zone, previousSession: true }))
-        : camera.zones,
+      zones:
+        changedSession || freshnessDegraded
+          ? camera.zones.map((zone) => ({
+              ...zone,
+              previousSession: changedSession ? true : zone.previousSession,
+              dataFreshness: freshnessDegraded ? nextFreshness : zone.dataFreshness,
+            }))
+          : camera.zones,
     };
   });
 }
@@ -130,12 +139,15 @@ export function mergeSnapshot(previous: LiveCamera[], incoming: LiveCamera[]): L
 }
 export const HUB_FACTORY = new InjectionToken<(url: string) => HubConnection>('hub factory', {
   providedIn: 'root',
-  factory: () => (url) =>
-    new HubConnectionBuilder()
-      .withUrl(url)
-      .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(LogLevel.None)
-      .build(),
+  factory: () => {
+    const auth = inject(Auth);
+    return (url) =>
+      new HubConnectionBuilder()
+        .withUrl(url, { accessTokenFactory: () => auth.token() })
+        .withAutomaticReconnect([0, 2000, 10000, 30000])
+        .configureLogging(LogLevel.None)
+        .build();
+  },
 });
 export interface FeedState {
   cameras: LiveCamera[];
@@ -149,6 +161,69 @@ export class Realtime {
   private readonly factory = inject(HUB_FACTORY);
   readonly mode = signal('Polling');
   readonly summaries = new Subject<void>();
+  watchAlertChanges(siteId: string): Observable<void> {
+    return new Observable((observer) => {
+      const hub = this.api.config.signalREnabled ? this.factory(this.api.config.hubPath) : null;
+      const changes = new Subject<void>();
+      const versions = new Map<string, number>();
+      let stopped = false;
+      let starting = false;
+      const subscribe = async () => {
+        await hub!.invoke('SubscribeToSite', siteId);
+        if (!stopped) changes.next();
+      };
+      const connect = async () => {
+        if (!hub || stopped || starting || hub.state !== HubConnectionState.Disconnected) return;
+        starting = true;
+        try {
+          await hub.start();
+          if (!stopped) await subscribe();
+        } catch {
+          /* REST synchronization remains available. */
+        } finally {
+          starting = false;
+        }
+      };
+      hub?.on('AnalyticsAlertChanged', (event: AlertChanged) => {
+        if (
+          stopped ||
+          event.siteId !== siteId ||
+          event.stateVersion <= (versions.get(event.alertId) ?? -1)
+        )
+          return;
+        if (versions.size > 1000) versions.clear();
+        versions.set(event.alertId, event.stateVersion);
+        changes.next();
+      });
+      hub?.onreconnected(async () => {
+        try {
+          await subscribe();
+        } catch {
+          changes.next();
+        }
+      });
+      void connect();
+      const interval = this.api.config.refreshIntervalSeconds * 1000;
+      const subscription = merge(timer(interval, interval), changes.pipe(auditTime(500))).subscribe(
+        () => {
+          observer.next();
+          void connect();
+        },
+      );
+      return () => {
+        stopped = true;
+        subscription.unsubscribe();
+        changes.complete();
+        if (hub) {
+          const leave =
+            hub.state === HubConnectionState.Connected
+              ? hub.invoke('UnsubscribeFromSite', siteId).catch(() => undefined)
+              : Promise.resolve();
+          void leave.finally(() => hub.stop());
+        }
+      };
+    });
+  }
   watch(scope: 'site' | 'camera', id: string): Observable<FeedState> {
     return new Observable((observer) => {
       let state: FeedState = { cameras: [], loading: true, error: null, refreshedAt: null };
@@ -180,14 +255,13 @@ export class Realtime {
         }
       };
       if (hub) {
-        hub.on('CameraSnapshotUpdated', (event: CameraEvent) => {
+        const handleCameraEvent = (event: CameraEvent) => {
+          if (scope === 'site' && event.siteId && event.siteId !== id) return;
           state = { ...state, cameras: applyCameraEvent(state.cameras, event) };
           publish();
-        });
-        hub.on('CameraStatusChanged', (event: CameraEvent) => {
-          state = { ...state, cameras: applyCameraEvent(state.cameras, event) };
-          publish();
-        });
+        };
+        hub.on('CameraSnapshotUpdated', handleCameraEvent);
+        hub.on('CameraStatusChanged', handleCameraEvent);
         hub.on('ZoneMetricsUpdated', (event: ZoneEvent) => {
           state = { ...state, cameras: applyZoneEvent(state.cameras, event) };
           publish();

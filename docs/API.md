@@ -20,7 +20,7 @@ All REST paths below are relative to runtime `apiBaseUrl`. The hub URL is separa
 | `/sessions/:id`                | GET analytics/sessions/{id}, analytics/sessions/{id}/report                                                                            |
 | System status dialog           | GET health/live, health/ready, monitoring/status                                                                                       |
 
-Together these cover the supplied inventory of 37 REST operations. Lookup requests use the same list endpoints, retrieving all pages rather than truncating dropdowns at 100 records. Visible registry and session lists use server pagination/search. No DELETE, playback, Alerts CRUD, user-management, login or unsupported telemetry endpoint is invented.
+These cover the original inventory of 37 REST operations. The expanded handoff adds 26 verified operations for smart reports, alerts/rules and floors/layouts, consumed through `core/smart-api.ts`; see the complete [65-operation coverage matrix](API_COVERAGE.md) and [integration notes](SMART_INTEGRATION.md). The two remaining comparison/forecast routes are absent from the inspected PR HTTP mappings and remain blocked. Lookup requests retrieve all catalog pages; visible registry and session lists use server pagination/search. No raw playback, user-management or first-party login endpoint is invented.
 
 ## HTTP behavior
 
@@ -31,7 +31,7 @@ Together these cover the supplied inventory of 37 REST operations. Lookup reques
 ## Report semantics
 
 - Live filters send UTC ISO `from` and `to`, interval minute/hour/day and a half-open range. Date controls explicitly identify the browser time zone; report displays use the server's `period.timeZoneId`.
-- Video filters require `sourceType=video_file` and `sessionId`. Only source-position bounds in milliseconds are sent; clock `from/to` are removed centrally.
+- Video filters send `sourceType=video_file`, `sessionId` and a numeric or `unmarked` `videoLoop`. Smart reports additionally require both source-position bounds. Clock `from/to` are removed centrally; live queries omit the video loop and positions.
 - Default live range limits are 7 days for minute and 90 for hour/day. The backend may impose different configured limits and its errors are displayed. Position ranges are checked for valid ordering and non-negative integer milliseconds.
 - Null is N/A, zero is a known value, and insufficient series buckets remain gaps. A lack of coverage is exposed rather than filled with zero.
 - Occupancy across overlapping zones is not unique people. Gate entries differ from zone arrivals. Browser code never sums cumulative traffic snapshots into historical totals.
@@ -40,6 +40,8 @@ Together these cover the supplied inventory of 37 REST operations. Lookup reques
 ## Realtime
 
 `core/realtime.ts` subscribes with internal GUIDs using `SubscribeToSite` or `SubscribeToCamera`. Leaving a view invokes the matching `UnsubscribeFromSite` / `UnsubscribeFromCamera` and stops its connection. It handles CameraSnapshotUpdated, ZoneMetricsUpdated, CameraStatusChanged and AnalyticsSummaryUpdated.
+
+The separate alert invalidation stream handles `AnalyticsAlertChanged`, verifies site and per-alert stateVersion, coalesces notifications and refetches authoritative REST data after reconnect. It does not call administrator-only live endpoints. OIDC tokens, when configured, are supplied to both REST and hub transports. Smart `MetricQuality` uses its own typed model and display; it is not coerced into legacy `DataQuality`.
 
 Camera/zone reducers reject duplicate or older stateVersion values. Zone events from a different camera session are ignored; unknown zones are not inserted. Event arrivals/departures map to zoneArrivals/zoneDepartures. New session snapshots mark old zone readings as previous-session observations. REST merges preserve newer event versions. Server-derived capacity metadata is refreshed with REST rather than guessed from partial events.
 

@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 
 export interface RuntimeConfig {
+  auth?: { authority: string; clientId: string; scope: string; audience?: string };
   apiBaseUrl: string;
   hubPath: string;
   signalREnabled: boolean;
@@ -38,6 +39,27 @@ export function parseConfig(value: unknown): RuntimeConfig {
         'API and hub URLs must be HTTP(S) URLs without credentials, queries or fragments.',
       );
     }
+  }
+  if (config.auth !== undefined) {
+    const auth = config.auth;
+    if (
+      !auth ||
+      typeof auth.authority !== 'string' ||
+      typeof auth.clientId !== 'string' ||
+      !auth.clientId.trim() ||
+      typeof auth.scope !== 'string' ||
+      !auth.scope.split(' ').includes('openid')
+    )
+      throw new Error('OIDC requires authority, clientId and a scope containing openid.');
+    const authority = new URL(auth.authority);
+    if (
+      authority.protocol !== 'https:' ||
+      authority.username ||
+      authority.password ||
+      authority.search ||
+      authority.hash
+    )
+      throw new Error('OIDC authority must be HTTPS without credentials, query or fragment.');
   }
   return { ...config, apiBaseUrl: api.href.replace(/\/$/, ''), hubPath: hub.href } as RuntimeConfig;
 }

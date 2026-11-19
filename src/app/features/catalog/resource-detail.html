@@ -1,0 +1,384 @@
+<div class="resource-detail-container">
+  <!-- Top Navigation & Breadcrumbs -->
+  <nav class="breadcrumbs" [attr.aria-label]="'Breadcrumb' | t">
+    <a [routerLink]="kind === 'zones' ? '/cameras' : '/' + kind">
+      <app-icon [name]="kindIcon()" />
+      <span>{{ (kind === 'zones' ? 'nav.cameras' : kind) | t }}</span>
+    </a>
+    <span class="breadcrumb-separator">/</span>
+    <span class="breadcrumb-current">{{ result().data?.name }}</span>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-heading detail-page-heading">
+    <div class="page-title-group">
+      <div class="page-title-badge" aria-hidden="true">
+        <app-icon [name]="kindIcon()" />
+      </div>
+      <div>
+        <div class="heading-meta-row">
+          <h1>{{ result().data?.name || ('Resource detail' | t) }}</h1>
+          @if (result().data; as item) {
+            <app-status [value]="item.isActive ? 'Active' : 'Inactive'" />
+          }
+        </div>
+        <p class="heading-subtitle">
+          @if (kind === 'zones') {
+            {{ 'catalog.desc.zones' | t }}
+          } @else if (kind === 'cameras') {
+            {{ 'catalog.desc.cameras' | t }}
+          } @else {
+            {{ 'catalog.desc.sites' | t }}
+          }
+        </p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="button secondary header-refresh-btn" [disabled]="result().loading" (click)="reload()">
+        <app-icon name="refresh" />
+        <span>{{ 'Refresh' | t }}</span>
+      </button>
+
+      @if (result().data; as item) {
+        @if (kind === 'zones') {
+          <a
+            routerLink="/analytics"
+            [queryParams]="{ zoneId: item.id, cameraId: zone(item).cameraId }"
+            class="button primary"
+          >
+            <app-icon name="chart" />
+            <span>{{ 'Zone analytics' | t }}</span>
+          </a>
+          <a
+            [routerLink]="['/cameras', zone(item).cameraId, 'zones']"
+            class="button secondary"
+          >
+            <app-icon name="zones" />
+            <span>{{ 'Manage zones' | t }}</span>
+          </a>
+        } @else if (kind === 'cameras') {
+          <a [routerLink]="['/live', item.id]" class="button primary">
+            <app-icon name="live" />
+            <span>{{ 'Live monitoring' | t }}</span>
+          </a>
+          <a [routerLink]="['/cameras', item.id, 'zones']" class="button secondary">
+            <app-icon name="zones" />
+            <span>{{ 'Manage zones' | t }}</span>
+          </a>
+        } @else if (kind === 'sites') {
+          <a [routerLink]="['/sites', item.id, 'floors']" class="button secondary">
+            <app-icon name="zones" />
+            <span>{{ 'Floors' | t }}</span>
+          </a>
+          <a routerLink="/cameras" [queryParams]="{ siteId: item.id }" class="button secondary">
+            <app-icon name="camera" />
+            <span>{{ 'Cameras' | t }}</span>
+          </a>
+        }
+      }
+    </div>
+  </header>
+
+  <!-- Loading / Error states -->
+  @if (result().loading || result().error) {
+    <app-state [loading]="result().loading" [error]="result().error" (retry)="reload()" />
+  }
+
+  <!-- Main Content Layout -->
+  @if (result().data; as item) {
+    <div class="detail-content-layout">
+      <!-- 1. Metadata / Configuration Card -->
+      <section class="surface smart-card config-card">
+        <div class="section-heading">
+          <div class="section-title-with-icon">
+            <app-icon name="database" class="sec-accent-icon" />
+            <div>
+              <h2>{{ (kind === 'zones' ? 'Zone details' : kind === 'cameras' ? 'Camera details' : 'Site details') | t }}</h2>
+              <p class="section-subtitle">{{ 'Configuration and identity attributes.' | t }}</p>
+            </div>
+          </div>
+          <app-status [value]="item.isActive ? 'Active' : 'Inactive'" />
+        </div>
+
+        <div class="property-grid">
+          <div class="prop-tile">
+            <span class="prop-label">{{ 'Name' | t }}</span>
+            <span class="prop-val">{{ item.name }}</span>
+          </div>
+
+          <div class="prop-tile">
+            <span class="prop-label">{{ 'Status' | t }}</span>
+            <span class="prop-val">
+              <span class="status-indicator-inline" [class.is-active]="item.isActive"></span>
+              {{ (item.isActive ? 'Active' : 'Inactive') | t }}
+            </span>
+          </div>
+
+          <div class="prop-tile prop-tile-wide">
+            <span class="prop-label">{{ 'Description' | t }}</span>
+            <span class="prop-val text-muted-val">{{ item.description || '—' }}</span>
+          </div>
+
+          @if (kind === 'zones') {
+            <div class="prop-tile">
+              <span class="prop-label">Scope ID</span>
+              <span class="prop-val">
+                <code class="session-code" dir="ltr">{{ item.id }}</code>
+              </span>
+            </div>
+
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'External ID' | t }}</span>
+              <span class="prop-val">
+                <code class="session-code" dir="ltr">{{ zone(item).externalZoneId }}</code>
+              </span>
+            </div>
+
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Parent Camera' | t }}</span>
+              <span class="prop-val">
+                @if (parentCamera(); as cam) {
+                  <a [routerLink]="['/cameras', zone(item).cameraId]" class="table-link">
+                    <app-icon name="camera" />
+                    <span>{{ cam.cameraName }}</span>
+                  </a>
+                } @else {
+                  <code class="session-code" dir="ltr">{{ zone(item).cameraId }}</code>
+                }
+              </span>
+            </div>
+
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Capacity' | t }}</span>
+              <span class="prop-val">
+                {{ zone(item).capacity != null ? format.number(zone(item).capacity) : ('Not configured' | t) }}
+              </span>
+            </div>
+
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Warning threshold' | t }}</span>
+              <span class="prop-val">
+                <span class="threshold-pill is-warning" dir="ltr">{{ zone(item).warningThresholdPercent }}%</span>
+              </span>
+            </div>
+
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Critical threshold' | t }}</span>
+              <span class="prop-val">
+                <span class="threshold-pill is-critical" dir="ltr">{{ zone(item).criticalThresholdPercent }}%</span>
+              </span>
+            </div>
+          }
+
+          @if (kind === 'cameras') {
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'External ID' | t }}</span>
+              <span class="prop-val">
+                <code class="session-code" dir="ltr">{{ camera(item).externalCameraId }}</code>
+              </span>
+            </div>
+            <div class="prop-tile">
+              <span class="prop-label">MQTT Topic</span>
+              <span class="prop-val">
+                <code class="session-code" dir="ltr">{{ camera(item).mqttTopic }}</code>
+              </span>
+            </div>
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Monitored zones' | t }}</span>
+              <span class="prop-val">{{ format.number(camera(item).zonesCount) }}</span>
+            </div>
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Last received' | t }}</span>
+              <span class="prop-val">{{ format.timestamp(camera(item).lastReceivedAtUtc) }}</span>
+            </div>
+          }
+
+          @if (kind === 'sites') {
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Code' | t }}</span>
+              <span class="prop-val"><code class="session-code">{{ site(item).code }}</code></span>
+            </div>
+            <div class="prop-tile">
+              <span class="prop-label">{{ 'Time zone' | t }}</span>
+              <span class="prop-val">{{ site(item).timeZoneId }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- 2. Live Telemetry / Realtime Telemetry Card -->
+      @if (kind === 'zones') {
+        <section class="surface smart-card telemetry-card">
+          <div class="section-heading">
+            <div class="section-title-with-icon">
+              <app-icon name="pulse" class="sec-accent-icon" />
+              <div>
+                <h2>{{ 'Live telemetry' | t }}</h2>
+                <p class="section-subtitle">
+                  @if (parentCamera(); as cam) {
+                    <span>{{ cam.cameraName }} · </span>
+                  }
+                  {{ 'Real-time camera observations and zone visitor metrics.' | t }}
+                </p>
+              </div>
+            </div>
+
+            @if (liveZone(); as lz) {
+              <app-status [value]="lz.dataFreshness" />
+            } @else if (parentCamera(); as cam) {
+              <app-status [value]="cam.dataFreshness" />
+            }
+          </div>
+
+          @if (liveZone(); as lz) {
+            <!-- KPI Counters Row -->
+            <div class="telemetry-kpi-row">
+              <div class="telemetry-kpi-tile accent-kpi">
+                <div class="kpi-icon-wrap"><app-icon name="users" /></div>
+                <div class="kpi-info">
+                  <span class="kpi-label">{{ 'Occupancy' | t }}</span>
+                  <span class="kpi-num">{{ lz.occupancy != null ? format.number(lz.occupancy) : '—' }}</span>
+                </div>
+              </div>
+
+              <div class="telemetry-kpi-tile">
+                <div class="kpi-icon-wrap"><app-icon name="user" /></div>
+                <div class="kpi-info">
+                  <span class="kpi-label">{{ 'Active visitors' | t }}</span>
+                  <span class="kpi-num">{{ lz.activeVisitorsCount != null ? format.number(lz.activeVisitorsCount) : '—' }}</span>
+                </div>
+              </div>
+
+              <div class="telemetry-kpi-tile">
+                <div class="kpi-icon-wrap"><app-icon name="percent" /></div>
+                <div class="kpi-info">
+                  <span class="kpi-label">{{ 'Utilization' | t }}</span>
+                  <span class="kpi-num" dir="ltr">
+                    {{ lz.utilizationPercent != null ? format.number(lz.utilizationPercent, 1) + '%' : ('Not configured' | t) }}
+                  </span>
+                </div>
+              </div>
+
+              @if (lz.capacityStatus) {
+                <div class="telemetry-kpi-tile">
+                  <div class="kpi-icon-wrap"><app-icon name="overview" /></div>
+                  <div class="kpi-info">
+                    <span class="kpi-label">{{ 'Capacity status' | t }}</span>
+                    <app-status [value]="lz.capacityStatus" />
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Detailed Telemetry Sub-grid -->
+            <div class="telemetry-metrics-grid">
+              <div class="metric-box">
+                <div class="metric-box-title">
+                  <app-icon name="chartLine" />
+                  <span>{{ 'Traffic metrics' | t }}</span>
+                </div>
+                <div class="metric-box-items">
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Arrivals' | t }}</span>
+                    <span class="m-val">{{ lz.zoneArrivals != null ? format.number(lz.zoneArrivals) : '—' }}</span>
+                  </div>
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Departures' | t }}</span>
+                    <span class="m-val">{{ lz.zoneDepartures != null ? format.number(lz.zoneDepartures) : '—' }}</span>
+                  </div>
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Gate entries' | t }}</span>
+                    <span class="m-val">{{ lz.entry != null ? format.number(lz.entry) : '—' }}</span>
+                  </div>
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Gate exits' | t }}</span>
+                    <span class="m-val">{{ lz.exit != null ? format.number(lz.exit) : '—' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-box-title">
+                  <app-icon name="clock" />
+                  <span>{{ 'Dwell & movements' | t }}</span>
+                </div>
+                <div class="metric-box-items">
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Average dwell' | t }}</span>
+                    <span class="m-val">{{ lz.reportedAverageDwellSeconds != null ? format.duration(lz.reportedAverageDwellSeconds) : '—' }}</span>
+                  </div>
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Longest active dwell' | t }}</span>
+                    <span class="m-val">{{ lz.longestActiveDwellSeconds != null ? format.duration(lz.longestActiveDwellSeconds) : '—' }}</span>
+                  </div>
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Wrong-way in' | t }}</span>
+                    <span class="m-val">{{ lz.wrongWayIn != null ? format.number(lz.wrongWayIn) : '—' }}</span>
+                  </div>
+                  <div class="m-item">
+                    <span class="m-lbl">{{ 'Wrong-way out' | t }}</span>
+                    <span class="m-val">{{ lz.wrongWayOut != null ? format.number(lz.wrongWayOut) : '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="telemetry-footer">
+              <div class="telemetry-meta">
+                <app-icon name="clock" />
+                <span>{{ 'Last updated' | t }}: {{ format.timestamp(lz.lastUpdatedAtUtc) }}</span>
+              </div>
+              @if (lz.sessionId) {
+                <div class="telemetry-meta">
+                  <app-icon name="film" />
+                  <span>Session: <code class="session-code" dir="ltr">{{ lz.sessionId }}</code></span>
+                </div>
+              }
+            </footer>
+          } @else {
+            <div class="telemetry-empty-box">
+              <app-icon name="pulse" />
+              <p>{{ 'Waiting for real-time telemetry from connected camera...' | t }}</p>
+            </div>
+          }
+        </section>
+      }
+
+      @if (kind === 'cameras' && parentCamera(); as c) {
+        <section class="surface smart-card telemetry-card">
+          <div class="section-heading">
+            <div class="section-title-with-icon">
+              <app-icon name="live" class="sec-accent-icon" />
+              <div>
+                <h2>{{ 'Live stream' | t }}</h2>
+                <p class="section-subtitle">{{ c.cameraName }} · {{ 'Live camera monitoring and sub-zones' | t }}</p>
+              </div>
+            </div>
+            <app-status [value]="c.dataFreshness" />
+          </div>
+
+          <div class="camera-zones-preview-list">
+            @for (z of c.zones; track z.zoneId) {
+              <div class="cam-zone-preview-row">
+                <div class="cam-zone-info">
+                  <app-icon name="zones" />
+                  <a [routerLink]="['/zones', z.zoneId]" class="table-link">{{ z.zoneName }}</a>
+                </div>
+                <div class="cam-zone-stat">
+                  <span class="stat-lbl">{{ 'Occupancy' | t }}:</span>
+                  <strong>{{ z.occupancy != null ? format.number(z.occupancy) : '—' }}</strong>
+                </div>
+                <div class="cam-zone-stat">
+                  <span class="stat-lbl">{{ 'Utilization' | t }}:</span>
+                  <strong dir="ltr">{{ z.utilizationPercent != null ? format.number(z.utilizationPercent, 1) + '%' : ('N/A' | t) }}</strong>
+                </div>
+                <app-status [value]="z.capacityStatus || z.dataFreshness" />
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+</div>

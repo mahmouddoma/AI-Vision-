@@ -1,118 +1,23 @@
-<header class="page-heading">
-  <div class="page-title-group">
-    <div class="page-title-badge" aria-hidden="true">
-      <app-icon name="overview" />
-    </div>
-    <div>
-      <h1>{{ 'overview.title' | t }}</h1>
-      <p>{{ 'overview.subtitle' | t }}</p>
-    </div>
+<header class="ov-topbar">
+  <div class="ov-title-wrap">
+    <span class="ov-badge" aria-hidden="true"><app-icon name="overview" /></span>
+    <h1>{{ 'overview.title' | t }}</h1>
   </div>
-  <button
-    class="button secondary header-refresh-btn"
-    [disabled]="feed().loading"
-    (click)="refresh()"
-  >
-    <app-icon name="refresh" />{{ 'action.refresh' | t }}
-  </button>
+  <div class="ov-topbar-actions">
+    @if (report(); as rep) {
+      <app-quality [value]="rep.dataQuality" />
+    }
+    <button
+      class="button secondary header-refresh-btn"
+      [disabled]="feed().loading || reportLoading()"
+      (click)="refresh()"
+    >
+      <app-icon name="refresh" />{{ 'action.refresh' | t }}
+    </button>
+  </div>
 </header>
-<div class="stack">
-  <div class="kpi-strip">
-    <div class="kpi-col">
-      <div class="kpi-head">
-        <div class="kpi-icon kpi-icon-teal"><app-icon name="camera" /></div>
-        <div class="kpi-title-block">
-          <span class="kpi-label">{{ 'overview.registeredCameras' | t }}</span>
-          <span class="kpi-sub">{{ 'overview.allSites' | t }}</span>
-        </div>
-      </div>
-      <strong class="kpi-num">{{ num(context.monitoring()?.registeredCameras) }}</strong>
-      <span class="kpi-desc">{{
-        context.monitoringError()
-          ? ('Last known status · connection unavailable' | t)
-          : ('overview.totalCamerasNetwork' | t)
-      }}</span>
-    </div>
 
-    <div class="kpi-sep"></div>
-
-    <div class="kpi-col">
-      <div class="kpi-head">
-        <div class="kpi-icon kpi-icon-green"><app-icon name="bolt" /></div>
-        <div class="kpi-title-block">
-          <span class="kpi-label">{{ 'metrics.freshCameras' | t }}</span>
-          <span class="kpi-sub">{{ 'overview.selectedSite' | t }}</span>
-        </div>
-      </div>
-      <strong class="kpi-num">{{
-        feed().loading || feed().error ? ('N/A' | t) : num(freshCount())
-      }}</strong>
-      <span class="kpi-desc">{{ 'metrics.accordingToFreshness' | t }}</span>
-    </div>
-
-    <div class="kpi-sep"></div>
-
-    <div class="kpi-col">
-      <div class="kpi-head">
-        <div class="kpi-icon kpi-icon-blue"><app-icon name="zones" /></div>
-        <div class="kpi-title-block">
-          <span class="kpi-label">{{ 'metrics.monitoredZones' | t }}</span>
-          <span class="kpi-sub">{{ 'tab.occupancy' | t }}</span>
-        </div>
-      </div>
-      <strong class="kpi-num">{{ num(knownOccupancy()) }}</strong>
-      <span class="kpi-desc">{{
-        feed().error ? ('Last known snapshot, connection lost' | t) : ('metrics.sumKnownZones' | t)
-      }}</span>
-    </div>
-
-    <div class="kpi-sep"></div>
-
-    <div class="kpi-col">
-      <div class="kpi-head">
-        <div class="kpi-icon kpi-icon-amber"><app-icon name="percent" /></div>
-        <div class="kpi-title-block">
-          <span class="kpi-label">{{ 'overview.reportCoverage' | t }}</span>
-          <span class="kpi-sub">{{ 'overview.observed' | t }}</span>
-        </div>
-      </div>
-      <strong class="kpi-num">{{
-        report() ? num(report()!.dataQuality.coveragePercent, 1) + '%' : ('N/A' | t)
-      }}</strong>
-      <span class="kpi-desc">{{ 'overview.observedShare' | t }}</span>
-    </div>
-  </div>
-
-  @if (context.monitoring(); as status) {
-    <div class="health-strip-card">
-      <div class="health-strip-title">
-        <app-icon name="pulse" />
-        <span>{{ 'overview.networkHealth' | t }}</span>
-      </div>
-      <div class="health-pills">
-        <span class="health-pill health-pill-fresh">
-          <span class="status-dot dot-fresh"></span>
-          <strong>{{ status.fresh }}</strong> {{ 'overview.fresh' | t }}
-        </span>
-        <span class="health-pill health-pill-stale">
-          <span class="status-dot dot-stale"></span>
-          <strong>{{ status.stale }}</strong> {{ 'overview.stale' | t }}
-        </span>
-        <span class="health-pill health-pill-muted">
-          <span class="status-dot dot-muted"></span>
-          <strong>{{ status.noRecentData }}</strong> {{ 'overview.noRecentData' | t }}
-        </span>
-        <span class="health-pill health-pill-danger">
-          <span class="status-dot dot-danger"></span>
-          <strong>{{ status.neverReceived }}</strong> {{ 'overview.neverReceived' | t }}
-        </span>
-        <span class="health-pill health-pill-ended">
-          <span class="status-dot dot-ended"></span>
-          <strong>{{ status.ended }}</strong> {{ 'overview.ended' | t }}
-        </span>
-      </div>
-    </div>
-  }
+<div class="ov-stack">
   @if (context.sitesLoading() || context.sitesError()) {
     <section class="surface">
       <app-state
@@ -134,201 +39,350 @@
       <a class="button" routerLink="/sites"
         ><app-icon name="plus" />{{ 'Set up your first site' | t }}</a
       >
-      <div class="setup-steps">
-        <span><app-icon name="building" />{{ 'Create a site' | t }}</span
-        ><app-icon name="right" /><span><app-icon name="camera" />{{ 'Register cameras' | t }}</span
-        ><app-icon name="right" /><span><app-icon name="zones" />{{ 'Define zones' | t }}</span>
-      </div>
     </section>
   } @else {
-    <app-report-filters [busy]="reportLoading()" (changed)="filter.set($event)" />
-    @if (reportLoading() || reportError()) {
+    <!-- Compact KPI Strip (Live Occupancy + Historical Summary) -->
+    <section class="ov-kpi-grid" [attr.aria-label]="'overview.title' | t">
+      <article class="ov-kpi-card ov-tone-teal" data-testid="overview-live-occupancy">
+        <div class="ov-kpi-top">
+          <span class="ov-kpi-label">{{ 'metrics.liveOccupancy' | t }}</span>
+          <span class="ov-kpi-dot"><app-icon name="live" /></span>
+        </div>
+        <div class="ov-kpi-val-row">
+          <div class="ov-kpi-val" aria-describedby="ov-live-occupancy-desc">
+            {{ num(occupancy()) }}
+          </div>
+          @if (occupancyView().statusBadge; as badge) {
+            <app-status [value]="badge" />
+          }
+        </div>
+        <div id="ov-live-occupancy-desc" class="ov-kpi-foot" role="status" aria-live="polite">
+          {{ occupancyView().descriptionKey | t: occupancyView().descriptionParams }}
+        </div>
+      </article>
+
+      <article class="ov-kpi-card ov-tone-teal">
+        <div class="ov-kpi-top">
+          <span class="ov-kpi-label">{{ 'Peak occupancy' | t }}</span>
+          <span class="ov-kpi-dot"><app-icon name="users" /></span>
+        </div>
+        <div class="ov-kpi-val">
+          {{
+            report()?.peakOccupancy?.dataQuality?.kind !== 'InsufficientData' &&
+            report()?.peakOccupancy?.value != null
+              ? num(report()!.peakOccupancy!.value, 0)
+              : ('N/A' | t)
+          }}
+        </div>
+        <div class="ov-kpi-foot">
+          <span>{{ 'Average' | t }}:</span>
+          <strong>{{
+            report()?.mostCrowdedZone?.value != null
+              ? num(report()!.mostCrowdedZone!.value, 1)
+              : '—'
+          }}</strong>
+        </div>
+      </article>
+
+      <article class="ov-kpi-card ov-tone-emerald">
+        <div class="ov-kpi-top">
+          <span class="ov-kpi-label">{{ 'Zone arrivals' | t }}</span>
+          <span class="ov-kpi-dot"><app-icon name="trendUp" /></span>
+        </div>
+        <div class="ov-kpi-val">
+          {{
+            report()?.mostVisitedZone?.dataQuality?.kind !== 'InsufficientData' &&
+            report()?.mostVisitedZone?.value != null
+              ? num(report()!.mostVisitedZone!.value, 0)
+              : ('N/A' | t)
+          }}
+        </div>
+        <div class="ov-kpi-foot">
+          <span>{{ 'Gate entries' | t }}:</span>
+          <strong>{{
+            report()?.topEntryZone?.value != null ? num(report()!.topEntryZone!.value, 0) : '—'
+          }}</strong>
+        </div>
+      </article>
+
+      <article class="ov-kpi-card ov-tone-violet">
+        <div class="ov-kpi-top">
+          <span class="ov-kpi-label">{{ 'Estimated historical dwell' | t }}</span>
+          <span class="ov-kpi-dot"><app-icon name="clock" /></span>
+        </div>
+        <div class="ov-kpi-val">
+          {{
+            report()?.estimatedHistoricalDwell?.dataQuality?.kind !== 'InsufficientData' &&
+            report()?.estimatedHistoricalDwell?.value != null
+              ? duration(report()!.estimatedHistoricalDwell!.value)
+              : ('N/A' | t)
+          }}
+        </div>
+        <div class="ov-kpi-foot">
+          <span>{{ 'Longest active stay' | t }}:</span>
+          <strong>{{
+            report()?.longestActiveStay?.value != null
+              ? duration(report()!.longestActiveStay!.value)
+              : '—'
+          }}</strong>
+        </div>
+      </article>
+
+      <article class="ov-kpi-card ov-tone-amber">
+        <div class="ov-kpi-top">
+          <span class="ov-kpi-label">{{ 'overview.reportCoverage' | t }}</span>
+          <span class="ov-kpi-dot"><app-icon name="percent" /></span>
+        </div>
+        <div class="ov-kpi-val">
+          {{ report() ? num(report()!.dataQuality.coveragePercent, 1) + '%' : ('N/A' | t) }}
+        </div>
+        <div class="ov-kpi-foot">
+          <span>{{ 'metrics.freshCameras' | t }}:</span>
+          <strong>
+            {{ feed().loading || feed().error ? '—' : num(freshCount()) }} /
+            {{ num(context.monitoring()?.registeredCameras) }}
+          </strong>
+        </div>
+      </article>
+    </section>
+
+    <!-- Compact Collapsible Filter Bar (1-Line by Default) -->
+    <app-report-filters
+      [busy]="reportLoading()"
+      [defaultExpanded]="false"
+      (changed)="filter.set($event)"
+    />
+
+    @if ((reportLoading() || reportError()) && !occupancyReport()) {
       <section class="surface">
         <app-state [loading]="reportLoading()" [error]="reportError()" (retry)="refresh()" />
       </section>
-    } @else if (report(); as report) {
-      <section class="surface insights-section">
-        <header class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="chart" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'What the period tells us' | t }}</h2>
-              <p>
-                {{
-                  report.period.sourceType === 'video_file'
-                    ? ('Recorded video · source-relative time' | t)
-                    : ('Live observations · event time' | t)
-                }}
-                · {{ report.period.timeZoneId }}
-              </p>
-            </div>
+    } @else if (occupancyReport(); as occupancy) {
+      @if (activeZone(); as zone) {
+        <!-- Zone Switcher when multiple zones exist -->
+        @if (occupancy.zones.length > 1) {
+          <div class="ov-zone-pills" role="tablist">
+            @for (z of occupancy.zones; track z.zoneId) {
+              <button
+                type="button"
+                role="tab"
+                class="ov-zone-pill"
+                [class.active]="zone.zoneId === z.zoneId"
+                [attr.aria-selected]="zone.zoneId === z.zoneId"
+                (click)="selectedZoneId.set(z.zoneId)"
+              >
+                <app-icon name="location" />
+                <span>
+                  @if (zoneCameraName(z.zoneId); as camName) {
+                    {{ camName }} ·
+                  }
+                  {{ z.zoneName }}
+                </span>
+              </button>
+            }
           </div>
-          <app-quality [value]="report.dataQuality" />
-        </header>
-        <div class="insights-grid">
-          @for (item of highlights(); track item.label) {
-            <article class="insight-cell">
-              <div class="insight-cell-head">
-                <div class="insight-icon" [attr.data-tone]="item.tone">
-                  <app-icon [name]="item.icon" />
-                </div>
-                <span class="insight-label">{{ item.label | t }}</span>
+        }
+
+        <!-- HERO CHART: Full-Width Smooth Multi-Series Occupancy Trend -->
+        <section class="surface ov-chart-card">
+          <div class="ov-card-head">
+            <div class="ov-card-title">
+              <span class="ov-card-icon ov-tone-teal"><app-icon name="chartLine" /></span>
+              <div>
+                <h2>
+                  @if (zoneCameraName(zone.zoneId); as camName) {
+                    {{ camName }} ·
+                  }
+                  {{ zone.zoneName }}
+                </h2>
               </div>
-              <h3 class="insight-title" [title]="item.row?.zoneName || ''">
-                {{
-                  item.row?.dataQuality?.kind === 'InsufficientData'
-                    ? ('Not enough data' | t)
-                    : item.row?.zoneName || ('Not enough data' | t)
-                }}
-              </h3>
-              <span class="insight-subtext">
-                {{
-                  item.row && item.row.dataQuality.kind !== 'InsufficientData'
-                    ? item.unit.includes('duration')
-                      ? duration(item.row.value)
-                      : num(item.row.value, 1) + ' ' + (item.unit | t)
-                    : ('Waiting for eligible observations' | t)
-                }}
-              </span>
-            </article>
-          }
-        </div>
-      </section>
-      @if (occupancyReport(); as occupancy) {
-        @for (zone of occupancy.zones; track zone.zoneId) {
-          <section class="surface zone-activity-card">
-            <div class="section-heading">
-              <div class="section-title-with-icon">
-                <app-icon name="location" class="sec-accent-icon" />
-                <div>
-                  <h2>{{ zone.zoneName }} {{ '· Activity over time' | t }}</h2>
-                  <p>
-                    {{ occupancy.period.interval | t }} {{ 'buckets ·' | t }}
-                    {{
-                      occupancy.period.timeBasis === 'sourceTime'
-                        ? ('Video positions' | t)
-                        : occupancy.period.timeZoneId
-                    }}
-                  </p>
-                </div>
+            </div>
+            <a
+              routerLink="/analytics"
+              queryParamsHandling="merge"
+              [queryParams]="{
+                tab: 'occupancy',
+                cameraId: zoneCamera(zone.zoneId),
+                zoneId: zone.zoneId,
+              }"
+              class="button quiet explore-link"
+              >{{ 'Explore analytics' | t }} <app-icon name="arrow"
+            /></a>
+          </div>
+          <app-chart
+            kind="area"
+            palette="teal"
+            [title]="'Zone occupancy' | t"
+            [points]="occupancyPoints()"
+            [primaryLabel]="'Average occupancy' | t"
+            [secondaryLabel]="'Peak occupancy' | t"
+          />
+        </section>
+
+        <!-- ROW 2: Colorful 2-Column Analytics Charts -->
+        <div class="ov-charts-row">
+          <!-- Donut Chart: Traffic Distribution Breakdown -->
+          <section class="surface ov-chart-card">
+            <div class="ov-card-head">
+              <div class="ov-card-title">
+                <span class="ov-card-icon ov-tone-violet"><app-icon name="chart" /></span>
+                <h2>{{ 'tab.traffic' | t }}</h2>
               </div>
               <a
-                routerLink="/analytics"
-                [queryParams]="{
-                  tab: 'occupancy',
-                  cameraId: zoneCamera(zone.zoneId),
-                  zoneId: zone.zoneId,
-                }"
+                routerLink="/analytics/flow"
+                queryParamsHandling="preserve"
                 class="button quiet explore-link"
-                >{{ 'Explore analytics' | t }} <app-icon name="arrow"
+                >{{ 'Flow rate' | t }} <app-icon name="arrow"
               /></a>
             </div>
-            <app-chart
-              [title]="'Zone occupancy' | t"
-              [description]="'Average and peak occupancy. Unobserved intervals remain gaps.' | t"
-              [points]="points(zone.series, occupancy.period)"
-              [primaryLabel]="'Average occupancy' | t"
-              [secondaryLabel]="'Peak occupancy' | t"
-            /><app-quality [value]="zone.dataQuality" />
+
+            @if (trafficMix().total > 0) {
+              <div class="ov-donut-layout">
+                <div class="ov-donut-wrap">
+                  <svg viewBox="0 0 110 110" class="ov-donut-svg" role="img" [attr.aria-label]="'tab.traffic' | t">
+                    <circle cx="55" cy="55" r="42" fill="none" stroke="#f1f5f9" stroke-width="13" />
+                    @for (s of trafficMix().slices; track s.key) {
+                      @if (s.value > 0) {
+                        <circle
+                          cx="55"
+                          cy="55"
+                          r="42"
+                          fill="none"
+                          [attr.stroke]="s.color"
+                          stroke-width="13"
+                          [attr.stroke-dasharray]="s.dasharray"
+                          [attr.stroke-dashoffset]="s.dashoffset"
+                          stroke-linecap="butt"
+                          transform="rotate(-90 55 55)"
+                        />
+                      }
+                    }
+                    <text x="55" y="53" text-anchor="middle" class="ov-donut-total">
+                      {{ num(trafficMix().total, 0) }}
+                    </text>
+                    <text x="55" y="67" text-anchor="middle" class="ov-donut-sub">
+                      {{ 'totals' | t }}
+                    </text>
+                  </svg>
+                </div>
+
+                <div class="ov-donut-legend">
+                  @for (s of trafficMix().slices; track s.key) {
+                    <div class="ov-mix-row">
+                      <div class="ov-mix-label">
+                        <span class="ov-mix-swatch" [style.background]="s.color"></span>
+                        <span>{{ s.label | t }}</span>
+                      </div>
+                      <div class="ov-mix-bar-track">
+                        <div
+                          class="ov-mix-bar-fill"
+                          [style.width.%]="s.percent"
+                          [style.background]="s.color"
+                        ></div>
+                      </div>
+                      <strong class="ov-mix-val">{{ num(s.value, 0) }}</strong>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <p class="chart-empty">
+                {{ 'No eligible observations in this period. Missing values are not zero.' | t }}
+              </p>
+            }
           </section>
-        } @empty {
-          <section class="surface">
-            <app-state
-              icon="chart"
-              title="Your trends will appear here"
-              message="No observations match this period. Check your camera setup or select a different range."
+
+          <!-- Grouped Bar Chart: Zone Arrivals vs Departures -->
+          <section class="surface ov-chart-card">
+            <div class="ov-card-head">
+              <div class="ov-card-title">
+                <span class="ov-card-icon ov-tone-emerald"><app-icon name="trendUp" /></span>
+                <h2>{{ 'Zone arrivals' | t }} / {{ 'Zone departures' | t }}</h2>
+              </div>
+            </div>
+            <app-chart
+              kind="groupedBar"
+              palette="indigo"
+              [title]="zone.zoneName"
+              [points]="flowBarPoints()"
+              [primaryLabel]="'Zone arrivals' | t"
+              [secondaryLabel]="'Zone departures' | t"
             />
           </section>
-        }
+        </div>
+
+        <!-- ROW 3: Gate Traffic Chart + Compact Camera Health -->
+        <div class="ov-charts-row">
+          <section class="surface ov-chart-card">
+            <div class="ov-card-head">
+              <div class="ov-card-title">
+                <span class="ov-card-icon ov-tone-amber"><app-icon name="door" /></span>
+                <h2>{{ 'Gate entries' | t }} / {{ 'Gate exits' | t }}</h2>
+              </div>
+            </div>
+            <app-chart
+              kind="groupedBar"
+              palette="coral"
+              [title]="zone.zoneName"
+              [points]="gateBarPoints()"
+              [primaryLabel]="'Gate entries' | t"
+              [secondaryLabel]="'Gate exits' | t"
+            />
+          </section>
+
+          <!-- Compact Camera Network List -->
+          <section class="surface ov-chart-card">
+            <div class="ov-card-head">
+              <div class="ov-card-title">
+                <span class="ov-card-icon ov-tone-teal"><app-icon name="camera" /></span>
+                <h2>{{ 'overview.cameraNetwork' | t }}</h2>
+              </div>
+              <a class="button quiet explore-link" routerLink="/live"
+                >{{ 'nav.live' | t }} <app-icon name="arrow"
+              /></a>
+            </div>
+
+            @if ((feed().loading || feed().error) && !feed().cameras.length) {
+              <app-state [loading]="feed().loading" [error]="feed().error" (retry)="refresh()" />
+            } @else if (!feed().cameras.length) {
+              <app-state
+                icon="camera"
+                [title]="'overview.noCamerasAtSite' | t"
+                [message]="'overview.registerCamerasDesc' | t"
+              />
+            } @else {
+              <div class="ov-cam-list">
+                @for (camera of feed().cameras; track camera.cameraId) {
+                  <a class="ov-cam-item" [routerLink]="['/live', camera.cameraId]">
+                    <div class="ov-cam-info">
+                      <span class="ov-cam-name">{{ camera.cameraName }}</span>
+                      <span class="ov-cam-meta">
+                        {{ (camera.sourceType | t) || ('Unknown' | t) }} ·
+                        {{ camera.zones.length }} {{ 'overview.zonesCol' | t }}
+                      </span>
+                    </div>
+                    <div class="ov-cam-right">
+                      <app-status [value]="camera.isActive ? camera.dataFreshness : 'Inactive'" />
+                      <app-icon name="right" />
+                    </div>
+                  </a>
+                }
+              </div>
+            }
+          </section>
+        </div>
+      } @else {
+        <section class="surface">
+          <app-state
+            icon="chart"
+            [title]="'No eligible observations' | t"
+            [message]="
+              'There is not enough data for this report. Try another period or source; unknown values are not zero.'
+                | t
+            "
+          />
+        </section>
       }
     }
-    <section class="surface camera-network-card">
-      <div class="section-heading">
-        <div class="section-title-with-icon">
-          <app-icon name="camera" class="sec-accent-icon" />
-          <div>
-            <h2>{{ 'overview.cameraNetwork' | t }}</h2>
-            <p>
-              {{
-                feed().refreshedAt
-                  ? ('Last REST sync ' | t) + date(feed().refreshedAt, context.site()?.timeZoneId)
-                  : ('footer.observations' | t)
-              }}
-            </p>
-          </div>
-        </div>
-        <a class="button quiet explore-link" routerLink="/live"
-          >{{ 'nav.live' | t }} <app-icon name="arrow"
-        /></a>
-      </div>
-      @if (feed().loading || feed().error) {
-        <app-state [loading]="feed().loading" [error]="feed().error" (retry)="refresh()" />
-      } @else if (!feed().cameras.length) {
-        <app-state
-          icon="camera"
-          [title]="'overview.noCamerasAtSite' | t"
-          [message]="'overview.registerCamerasDesc' | t"
-          ><a class="button secondary" routerLink="/cameras">{{
-            'overview.manageCameras' | t
-          }}</a></app-state
-        >
-      } @else {
-        <app-table [label]="'Selected site cameras' | t"
-          ><table>
-            <caption class="visually-hidden">
-              {{
-                'Selected site camera health' | t
-              }}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col"><app-icon name="camera" /> {{ 'filters.camera' | t }}</th>
-                <th scope="col"><app-icon name="server" /> {{ 'overview.sourceCol' | t }}</th>
-                <th scope="col"><app-icon name="pulse" /> {{ 'overview.freshnessCol' | t }}</th>
-                <th scope="col"><app-icon name="zones" /> {{ 'overview.zonesCol' | t }}</th>
-                <th scope="col"><app-icon name="clock" /> {{ 'metrics.lastReceived' | t }}</th>
-                <th scope="col">{{ 'overview.inspectCol' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (camera of feed().cameras; track camera.cameraId) {
-                <tr>
-                  <th scope="row">
-                    <span class="camera-cell-name">{{ camera.cameraName }}</span>
-                    <span class="cell-sub">{{ camera.externalCameraId }}</span>
-                  </th>
-                  <td>
-                    <span class="source-tag">{{ (camera.sourceType | t) || ('Unknown' | t) }}</span>
-                  </td>
-                  <td>
-                    <app-status [value]="camera.isActive ? camera.dataFreshness : 'Inactive'" />
-                  </td>
-                  <td>
-                    <span class="badge-count">{{ camera.zones.length }}</span>
-                  </td>
-                  <td class="timestamp-cell">
-                    {{ date(camera.lastReceivedAtUtc, context.site()?.timeZoneId) }}
-                  </td>
-                  <td>
-                    <a
-                      class="icon-button inspect-btn"
-                      [routerLink]="['/live', camera.cameraId]"
-                      [attr.aria-label]="('Inspect ' | t) + camera.cameraName"
-                      [title]="'live.inspectLive' | t"
-                      ><app-icon name="right"
-                    /></a>
-                  </td>
-                </tr>
-              }
-            </tbody></table
-        ></app-table>
-      }
-    </section>
-    <div class="notice">
-      <app-icon name="info" />
-      <p>
-        {{ 'overview.notice' | t }}
-      </p>
-    </div>
   }
 </div>

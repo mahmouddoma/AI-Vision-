@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, inject, input, output } from '@angu
 import { UiError } from '../core/api';
 import { I18nService, TranslatePipe } from '../core/i18n';
 import { Icon, IconName } from './icon';
+import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-state',
-  imports: [Icon, TranslatePipe],
+  imports: [Icon, TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` @if (loading()) {
       <div
@@ -26,9 +27,13 @@ import { Icon, IconName } from './icon';
         @if (problem.traceId) {
           <small>{{ 'Support reference:' | t }} {{ problem.traceId }}</small>
         }
-        <button class="button secondary" (click)="retry.emit()">
-          <app-icon name="refresh" />{{ 'action.retry' | t }}
-        </button>
+        @if (problem.status === 401) {
+          <a class="button" routerLink="/auth">{{ 'Sign in' | t }}</a>
+        } @else {
+          <button class="button secondary" (click)="retry.emit()">
+            <app-icon name="refresh" />{{ 'action.retry' | t }}
+          </button>
+        }
       </div>
     } @else {
       <div class="state-view">

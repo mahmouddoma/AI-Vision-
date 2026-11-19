@@ -1,6 +1,6 @@
 # AI Vision - Camera Analytics
 
-Angular 21 standalone frontend for site, camera and zone management, live observations, historical analytics and recorded-video sessions. The UI uses Bootstrap Reboot/Grid, a shared restrained teal/slate design system, and locally bundled Font Awesome SVG icons. It displays actual API responses; synthetic data exists only in automated tests.
+Angular 21 standalone frontend for site/camera/zone management, live observations, smart analytics, alerts/rules, normalized floor polygons, measured heatmaps and loop-aware video session reports. The UI uses Bootstrap Reboot/Grid, shared design tokens and locally bundled Font Awesome SVG icons. It displays actual API responses; synthetic data exists only in automated tests.
 
 ## Run
 
@@ -23,6 +23,7 @@ Edit [public/config.json](public/config.json) without rebuilding. Angular copies
 | `hubPath`                | Absolute hub URL or backend-origin-relative path, default `/hubs/analytics` |
 | `signalREnabled`         | Enable realtime; false keeps configurable REST polling                      |
 | `refreshIntervalSeconds` | REST synchronization interval, 5-3600 seconds                               |
+| `auth`                   | Optional public OIDC metadata; see [smart integration](docs/SMART_INTEGRATION.md) |
 
 Use `http://localhost:4200` for local development: the configured backend currently allows this origin through CORS, while `http://127.0.0.1:4200` is not allowed.
 
@@ -39,7 +40,7 @@ npm run typecheck:e2e
 
 Browser tests use locally installed Google Chrome and clearly named synthetic API fixtures. They do not contact or validate the real backend. Install Chrome or adapt the `channel` in `playwright.config.ts` to your available browser. Playwright starts the frontend if needed. Reports are generated in `playwright-report/`, traces in `test-results/`, screenshots in `artifacts/`; all are ignored by Git.
 
-Run `npm run test:e2e:live` only after preparing the real SQL/MQTT environment and publishers described in [docs/INTEGRATION.md](docs/INTEGRATION.md). This separate suite does not mock responses. Basic REST and SignalR connectivity to the configured LAN server has been verified; the full publisher-backed integration suite remains pending. The handoff's Angular 22 target was assessed against this existing Angular 21 workspace; the existing supported standalone architecture was reused without a framework upgrade.
+Run `npm run test:e2e:live` only after preparing the real SQL/MQTT environment and publishers described in [docs/INTEGRATION.md](docs/INTEGRATION.md). This separate suite does not mock responses. On 2026-11-18 the configured LAN server returned HTTP 500 for Swagger, health and sites; publisher-backed and protected-environment validation remains pending. The handoff's Angular 22 target was assessed against this existing Angular 21 workspace; the existing supported standalone architecture was reused without a framework upgrade.
 
 ## Project map
 
@@ -47,6 +48,8 @@ Run `npm run test:e2e:live` only after preparing the real SQL/MQTT environment a
 - `src/app/ui/`: reusable icons, metrics, status, quality, dialogs, feedback, tables, pagination and accessible charts.
 - `src/app/features/`: lazy overview, registry, live, analytics and session routes.
 - [docs/API.md](docs/API.md): route/endpoint map and data semantics.
+- [docs/SMART_INTEGRATION.md](docs/SMART_INTEGRATION.md): PR contract baseline, authentication setup, feature journeys and deployment.
+- [docs/API_COVERAGE.md](docs/API_COVERAGE.md): all 65 supplied operations, 63 frontend consumers and two unexposed backend routes.
 - [docs/QA.md](docs/QA.md): story coverage, executed checks and release blockers.
 - [DESIGN.md](DESIGN.md): tokens, component conventions and UX blueprint.
 - [docs/JIRA_HANDOFF.md](docs/JIRA_HANDOFF.md): supplied proposed Jira backlog, retained as reference. No Jira issues were created or transitioned.

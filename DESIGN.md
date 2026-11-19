@@ -40,23 +40,29 @@ The sidebar becomes a native modal navigation dialog below 992px. Native dialogs
 
 ## Reusable components
 
-| Component              | Contract                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `Icon`                 | Typed Font Awesome name; no icon font/CDN dependency                                                                     |
-| `Metric`               | Label, formatted value, explanatory scope; unknown stays N/A                                                             |
-| `Status`               | Icon and text plus restrained semantic color; never color alone                                                          |
-| `Quality`              | Kind and coverage, expandable samples/duration/resets/baselines/gaps                                                     |
-| `StateView`            | Skeleton, actionable error with support trace, or contextual empty state                                                 |
-| `Dialog`               | Native modal used for registry edits, status confirmation, detail and navigation                                         |
-| `Table` / `Pagination` | Labelled scroll region, semantic headers and explicit server pages                                                       |
-| `Chart`                | Average/peak or two named series; gaps remain gaps; accessible data table pages of 100 rows, rendered only when expanded |
-| `ReportFilters`        | Cascading site/camera/zone context, live clock range or video session positions, validated explicit Apply                |
+| Component              | Contract                                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Icon`                 | Typed Font Awesome name; no icon font/CDN dependency                                                                               |
+| `Metric`               | Label, formatted value, explanatory scope; unknown stays N/A                                                                       |
+| `Status`               | Icon and text plus restrained semantic color; never color alone                                                                    |
+| `Quality`              | Kind and coverage, expandable samples/duration/resets/baselines/gaps                                                               |
+| `StateView`            | Skeleton, actionable error with support trace, or contextual empty state                                                           |
+| `Dialog`               | Native modal used for registry edits, status confirmation, detail and navigation                                                   |
+| `Table` / `Pagination` | Labelled scroll region, semantic headers and explicit server pages                                                                 |
+| `Chart`                | Average/peak or two named series; gaps remain gaps; accessible data table pages of 100 rows, rendered only when expanded           |
+| `ReportFilters`        | Cascading site/camera/zone context, live clock range or video session positions, validated explicit Apply                          |
+| `MetricQualityView`    | Smart provenance, partial/stale status, coverage, samples, gaps, resets, baselines and warning codes; distinct from legacy quality |
+| `VisualizationView`    | Backend-discriminated line/area/bar/histogram/gauge/timeline and polygon heatmap; exact data and source-time labels                |
 
 Fresh, Stale, No recent data, Never received, Ended, Warning, Critical and Estimated retain distinct text. Disabling a record does not erase history. Historical totals are never derived from cumulative live snapshots. Each chart describes its source and has a data table rather than a hover-only interaction.
 
 ## State flows
 
 Registry: search/list -> Add or Edit -> required fields / server validation -> Save -> reload. A 409 keeps the editor open, identifies the conflict and requires reloading an existing record before resubmission. New records can correct duplicate identifiers and retry.
+
+Floor layout: select camera/zone -> edit normalized polygon with pointer or coordinate fields -> validate non-intersection -> save with the current layout version. Deletion requires an explicit confirmation and the stored version. Heatmap fill represents returned measurements; unavailable values retain a neutral fill and quality explanation.
+
+Alerts: REST inbox/evidence -> coalesced, site-scoped invalidation events -> fresh REST data. Acknowledge keeps monitoring active; active rules explain observed recovery. Rule scope and kind are immutable on edit. External role/site claims control visible capabilities while the API remains authoritative.
 
 Live: REST snapshot -> scoped hub subscription -> ordered events -> throttled summary resync -> reconnect/resubscribe/REST recovery. Disabled or unavailable SignalR keeps polling. Never received, stale observations, previous-session zones and no registered camera each have explicit treatments.
 

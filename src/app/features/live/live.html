@@ -32,16 +32,23 @@
 
 <div class="stack">
   <div class="kpi-strip">
-    <div class="kpi-col">
+    <div class="kpi-col" data-testid="live-occupancy-kpi">
       <div class="kpi-head">
         <div class="kpi-icon kpi-icon-blue"><app-icon name="zones" /></div>
         <div class="kpi-title-block">
-          <span class="kpi-label">{{ 'metrics.occupancy' | t }}</span>
+          <span class="kpi-label">{{ 'metrics.liveOccupancy' | t }}</span>
           <span class="kpi-sub">{{ 'tab.occupancy' | t }}</span>
         </div>
       </div>
-      <strong class="kpi-num">{{ num(occupancy()) }}</strong>
-      <span class="kpi-desc">{{ 'metrics.sumKnownZones' | t }}</span>
+      <div class="kpi-value-row">
+        <strong class="kpi-num" aria-describedby="live-occupancy-desc">{{ num(occupancy()) }}</strong>
+        @if (occupancyView().statusBadge; as badge) {
+          <app-status [value]="badge" />
+        }
+      </div>
+      <span id="live-occupancy-desc" class="kpi-desc" role="status" aria-live="polite">{{
+        occupancyView().descriptionKey | t: occupancyView().descriptionParams
+      }}</span>
     </div>
 
     <div class="kpi-sep"></div>
@@ -86,7 +93,11 @@
         </div>
       </div>
       <strong class="kpi-num">{{
-        feed().error ? ('N/A' | t) : num(feed().cameras.filter(isFresh).length)
+        feed().error
+          ? ('N/A' | t)
+          : occupancySummary().monitoredCameras > 0
+            ? num(occupancySummary().freshCameras) + ' / ' + num(occupancySummary().monitoredCameras)
+            : num(occupancySummary().freshCameras)
       }}</strong>
       <span class="kpi-desc">{{ 'metrics.accordingToFreshness' | t }}</span>
     </div>

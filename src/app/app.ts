@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AppContext } from './core/context';
@@ -7,6 +7,7 @@ import { I18nService, TranslatePipe } from './core/i18n';
 import { Icon, IconName } from './ui/icon';
 import { Dialog } from './ui/dialog';
 import { SystemStatus } from './features/system/system-status';
+import { Auth } from './core/auth';
 
 @Component({
   selector: 'app-root',
@@ -25,6 +26,7 @@ import { SystemStatus } from './features/system/system-status';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
+  readonly auth = inject(Auth);
   readonly context = inject(AppContext);
   readonly realtime = inject(Realtime);
   readonly i18n = inject(I18nService);
@@ -35,12 +37,33 @@ export class App {
   toggleSidebar() {
     this.sidebarCollapsed.update((v) => !v);
   }
-  readonly navigation: { key: string; path: string; icon: IconName; groupKey: string }[] = [
+  private readonly allNavigation: {
+    key: string;
+    path: string;
+    icon: IconName;
+    groupKey: string;
+  }[] = [
     { key: 'nav.overview', path: '/', icon: 'overview', groupKey: 'nav.workspace' },
     { key: 'nav.live', path: '/live', icon: 'live', groupKey: '' },
-    { key: 'nav.analytics', path: '/analytics', icon: 'chart', groupKey: '' },
-    { key: 'nav.sessions', path: '/sessions', icon: 'film', groupKey: '' },
+    { key: 'System health', path: '/system-health', icon: 'server', groupKey: '' },
     { key: 'nav.sites', path: '/sites', icon: 'building', groupKey: 'nav.management' },
     { key: 'nav.cameras', path: '/cameras', icon: 'camera', groupKey: '' },
+    { key: 'Setup', path: '/setup', icon: 'check', groupKey: '' },
+    { key: 'Floors', path: '/floors', icon: 'zones', groupKey: 'Floors' },
+    { key: 'nav.analytics', path: '/analytics', icon: 'chart', groupKey: 'nav.analytics' },
+    { key: 'Alerts', path: '/alerts', icon: 'bell', groupKey: 'Alerts' },
+    { key: 'nav.sessions', path: '/sessions', icon: 'film', groupKey: 'nav.sessions' },
   ];
+  readonly navigation = computed(() =>
+    this.allNavigation
+      .filter(
+        (item) =>
+          this.auth.administrator() || ['/floors', '/analytics', '/alerts'].includes(item.path),
+      )
+      .map((item) =>
+        item.path === '/analytics' && !this.auth.administrator()
+          ? { ...item, path: '/analytics/flow' }
+          : item,
+      ),
+  );
 }

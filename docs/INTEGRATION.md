@@ -1,6 +1,6 @@
 # Real backend integration runbook
 
-The frontend is configured to use `http://192.168.1.8:8005/api/v1` and the hub at `http://192.168.1.8:8005/hubs/analytics`. Health checks returned Healthy, database Ready and MQTT Subscribed. A real browser at `http://localhost:4200` successfully loaded REST data and connected to SignalR without runtime errors. The full publisher-backed ingestion and reconnect suite remains pending; basic connectivity does not prove that entire flow.
+The frontend is configured to use `http://192.168.1.8:8005/api/v1` and the hub at `http://192.168.1.8:8005/hubs/analytics`. Earlier baseline connectivity succeeded, but read-only checks on 2026-11-18 now return HTTP 500 for Swagger, health/live, health/ready, sites and a smart visualization. Restore backend health and verify the deployed commit before running live UAT. No live integration success is claimed for the expanded handoff.
 
 The backend currently allows `http://localhost:4200` through CORS, but not `http://127.0.0.1:4200`. The commands below are for preparing a local backend if needed; they are not required to change the configured LAN server.
 
@@ -54,8 +54,8 @@ Inspect and retain runtime Swagger, request/response samples and real screenshot
 ## Remaining backend caveats
 
 - Video loop semantics and repeated playback can affect track/dwell estimates; no frontend deduplication claim is made.
-- Additional AI telemetry (including video_loop and unverified_losses) is not exposed by the inspected REST contract and is not rendered.
+- PR #1 exposes explicit video-loop filters and returned loop metadata. Other unsupported producer telemetry is not inferred or invented.
 - Ranking/peak coverage eligibility follows backend configuration. Low coverage is surfaced; frontend code does not invent a winning zone or a unique-person count.
-- There is no authentication, user management, raw video playback, spatial heatmap, Alerts CRUD or cross-camera identity contract in this scope.
+- PR #1 supports external JWT authentication, alerts/rules, floor polygons and measured heatmaps; see [SMART_INTEGRATION.md](SMART_INTEGRATION.md). User administration, first-party login, raw video playback, floor image upload and cross-camera identity remain unsupported. Comparison/forecast internals have no HTTP mapping in the inspected commit.
 
 Source: [backend README](https://github.com/LoaiSaberC4r/AI_Analytical/blob/master/README.md), [sample publisher](https://github.com/LoaiSaberC4r/AI_Analytical/blob/master/samples/publish-mqtt.ps1), and the supplied [Jira handoff](JIRA_HANDOFF.md). The backend README's own runtime claims are not evidence that this frontend was tested against that environment.

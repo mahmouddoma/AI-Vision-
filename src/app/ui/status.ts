@@ -20,6 +20,9 @@ const states: Record<string, [string, string, IconName]> = {
   Derived: ['Derived', 'accent', 'chart'],
   Reported: ['Reported', 'neutral', 'check'],
   InsufficientData: ['Insufficient data', 'warning', 'info'],
+  PartialData: ['Partial data', 'warning', 'warning'],
+  Disconnected: ['Last known snapshot', 'warning', 'warning'],
+  Unavailable: ['No reliable live data', 'neutral', 'info'],
   Active: ['Active', 'success', 'check'],
   Inactive: ['Inactive', 'neutral', 'dot'],
 };

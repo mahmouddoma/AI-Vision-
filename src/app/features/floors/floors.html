@@ -1,0 +1,136 @@
+<header class="page-heading">
+  <div>
+    <h1>{{ 'Floors' | t }}</h1>
+    <p>{{ 'Manage zone polygons and measured floor heatmaps.' | t }}</p>
+  </div>
+  <button
+    class="button"
+    [disabled]="!siteId() || !context.auth.canWrite(siteId())"
+    (click)="edit()"
+  >
+    {{ 'Add floor' | t }}
+  </button>
+</header>
+<section class="surface stack">
+  <form class="toolbar" (submit)="$event.preventDefault(); page.set(1); reload()">
+    <div class="field">
+      <label for="floors-field-1">{{ 'Search' | t }}</label
+      ><input
+        id="floors-field-1"
+        name="search"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+    <button class="button secondary">{{ 'Search' | t }}</button>
+  </form>
+  @if (error() && !editorOpen()) {
+    <app-state [error]="error()" (retry)="error.set(null); reload()" />
+  }
+  @if (result().loading || result().error) {
+    <app-state [loading]="result().loading" [error]="result().error" (retry)="reload()" />
+  } @else if (!result().data?.items?.length) {
+    <app-state title="No floors" message="Select a site and add a floor to map its zones." />
+  } @else {
+    <app-table label="Floors"
+      ><table>
+        <thead>
+          <tr>
+            <th>{{ 'Name' | t }}</th>
+            <th>{{ 'Display order' | t }}</th>
+            <th>{{ 'Status' | t }}</th>
+            <th>{{ 'Actions' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of result().data!.items; track f.id) {
+            <tr>
+              <th>
+                <a [routerLink]="['/floors', f.id, 'editor']">{{ f.name }}</a>
+              </th>
+              <td>{{ f.displayOrder }}</td>
+              <td>{{ (f.isActive ? 'Active' : 'Inactive') | t }}</td>
+              <td>
+                <div class="button-group">
+                  <a class="button quiet" [routerLink]="['/floors', f.id, 'heatmap']">{{
+                    'Heatmap' | t
+                  }}</a
+                  ><button
+                    class="button quiet"
+                    [disabled]="!context.auth.canWrite(f.siteId)"
+                    (click)="edit(f)"
+                  >
+                    {{ 'Edit' | t }}</button
+                  ><button
+                    class="button quiet"
+                    [disabled]="saving() || !context.auth.canWrite(f.siteId)"
+                    (click)="status(f)"
+                  >
+                    {{ (f.isActive ? 'Deactivate' : 'Activate') | t }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table></app-table
+    ><app-pagination
+      [page]="result().data!.page"
+      [pages]="result().data!.totalPages"
+      [total]="result().data!.totalCount"
+      (changed)="page.set($event)"
+    />
+  }
+</section>
+@if (editorOpen()) {
+  <app-dialog title="Floor" [busy]="saving()" (closed)="editorOpen.set(false)">
+    <form class="form-grid" #form="ngForm" (ngSubmit)="save()">
+      <div class="field">
+        <label for="floors-field-2">{{ 'Name' | t }}</label
+        ><input id="floors-field-2" name="name" [(ngModel)]="name" required maxlength="160" />
+      </div>
+      <div class="field">
+        <label for="floors-field-3">{{ 'Display order' | t }}</label
+        ><input
+          id="floors-field-3"
+          name="order"
+          type="number"
+          [(ngModel)]="displayOrder"
+          required
+          min="0"
+          max="10000"
+          step="1"
+        />
+      </div>
+      <label class="full"
+        >{{ 'Description' | t
+        }}<textarea name="description" [(ngModel)]="description" maxlength="2000"></textarea>
+      </label>
+      @if (error(); as e) {
+        <div class="notice error full" role="alert">
+          <p>{{ e.message }}</p>
+          @for (field of errorFields(e); track $index) {
+            <p>{{ field }}</p>
+          }
+          @if (e.conflict) {
+            <button class="button secondary" type="button" (click)="reloadCurrent()">
+              {{ 'Reload latest record' | t }}
+            </button>
+          }
+        </div>
+      }
+      <div class="dialog-actions full">
+        <button
+          class="button secondary"
+          type="button"
+          [disabled]="saving()"
+          (click)="editorOpen.set(false)"
+        >
+          {{ 'Cancel' | t }}</button
+        ><button class="button" [disabled]="form.invalid || saving() || error()?.conflict">
+          {{ 'Save' | t }}
+        </button>
+      </div>
+    </form>
+  </app-dialog>
+}

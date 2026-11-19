@@ -1,12 +1,13 @@
 <a class="skip-link" href="#main-content">{{ 'topbar.skipToContent' | t }}</a>
 <ng-template #navigationTemplate>
-  <nav aria-label="Main navigation">
-    @for (item of navigation; track item.path; let i = $index) {
+  <nav [attr.aria-label]="'Main navigation' | t">
+    @for (item of navigation(); track item.path; let i = $index) {
       @if (item.groupKey) {
         <p class="nav-group" [style.--item-index]="i">{{ item.groupKey | t }}</p>
       }
       <a
         [routerLink]="item.path"
+        [queryParamsHandling]="item.path === '/' || item.path.startsWith('/analytics') ? 'preserve' : null"
         routerLinkActive="nav-active"
         [routerLinkActiveOptions]="{ exact: item.path === '/' }"
         ariaCurrentWhenActive="page"
@@ -62,16 +63,16 @@
       <app-icon name="menu" />
     </button>
     <div class="site-context">
-      <app-icon name="location" /><label class="visually-hidden" for="workspace-site"
-        >{{ 'topbar.currentSite' | t }}</label
-      >
+      <app-icon name="location" /><label class="visually-hidden" for="workspace-site">{{
+        'topbar.currentSite' | t
+      }}</label>
       <select
         id="workspace-site"
         [value]="context.selectedSiteId()"
         (change)="context.selectedSiteId.set($any($event.target).value)"
-        [disabled]="context.sitesLoading() || !context.sites().length"
+        [disabled]="context.sitesLoading() || !context.siteOptions().length"
       >
-        @if (!context.sites().length) {
+        @if (!context.siteOptions().length) {
           <option value="">
             {{
               context.sitesLoading()
@@ -82,8 +83,10 @@
             }}
           </option>
         }
-        @for (site of context.sites(); track site.id) {
-          <option [value]="site.id">{{ site.name }}{{ site.isActive ? '' : (' · ' + ('topbar.inactive' | t)) }}</option>
+        @for (site of context.siteOptions(); track site.id) {
+          <option [value]="site.id">
+            {{ site.name }}{{ site.isActive ? '' : ' · ' + ('topbar.inactive' | t) }}
+          </option>
         }</select
       ><span class="context-divider"></span
       ><span class="timezone">{{ context.site()?.timeZoneId || ('UTC' | t) }}</span>
@@ -93,7 +96,9 @@
         class="lang-switch-btn"
         type="button"
         (click)="i18n.toggleLang()"
-        [attr.aria-label]="i18n.currentLang() === 'ar' ? 'Switch to English' : 'التغيير إلى العربية'"
+        [attr.aria-label]="
+          i18n.currentLang() === 'ar' ? 'Switch to English' : 'التغيير إلى العربية'
+        "
         [title]="i18n.currentLang() === 'ar' ? 'English' : 'العربية'"
       >
         <app-icon name="globe" />
@@ -101,6 +106,7 @@
       </button>
       <button
         class="connection-button"
+        [disabled]="!auth.administrator()"
         (click)="statusOpen.set(true)"
         [attr.aria-label]="'Open system status' | t"
       >
@@ -118,12 +124,22 @@
         }}</span
         ><app-icon name="down" />
       </button>
-      <button class="icon-button topbar-bell" [attr.aria-label]="'topbar.notifications' | t" [title]="'topbar.notifications' | t">
+      <a
+        routerLink="/alerts"
+        class="icon-button topbar-bell"
+        [attr.aria-label]="'topbar.notifications' | t"
+        [title]="'topbar.notifications' | t"
+      >
         <app-icon name="bell" />
-      </button>
-      <div class="topbar-avatar" [title]="'topbar.operatorProfile' | t">
+      </a>
+      <a
+        routerLink="/auth"
+        class="topbar-avatar"
+        [attr.aria-label]="'Account access' | t"
+        [title]="'Account access' | t"
+      >
         <app-icon name="user" />
-      </div>
+      </a>
     </div>
   </header>
   <main id="main-content" tabindex="-1"><router-outlet /></main>
@@ -134,7 +150,7 @@
       <span>{{ 'footer.brand' | t }}</span>
     </div>
     <div class="footer-meta">
-      <span>{{ (realtime.mode() | t) }} &bull; {{ 'footer.observations' | t }}</span>
+      <span>{{ realtime.mode() | t }} &bull; {{ 'footer.observations' | t }}</span>
     </div>
   </footer>
 </div>

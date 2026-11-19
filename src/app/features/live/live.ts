@@ -16,6 +16,7 @@ import { catchError, map, of, switchMap } from 'rxjs';
 import { gsap } from 'gsap';
 import { AppContext } from '../../core/context';
 import { Realtime, FeedState } from '../../core/realtime';
+import { calculateLiveOccupancy, describeLiveOccupancy } from '../../core/live-occupancy';
 import { LiveZone } from '../../core/models';
 import { Api, UiError, apiError } from '../../core/api';
 import { Icon } from '../../ui/icon';
@@ -97,14 +98,13 @@ export class Live {
       this.collapsedCameras.set(new Set(this.cameras().map((c) => c.cameraId)));
     }
   }
-  readonly occupancy = computed(() => {
-    const values = this.feed()
-      .cameras.flatMap((camera) => camera.zones)
-      .filter((zone) => zone.isActive)
-      .map((zone) => zone.occupancy)
-      .filter((value): value is number => value != null);
-    return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
-  });
+  readonly occupancySummary = computed(() =>
+    calculateLiveOccupancy(this.feed().cameras, { disconnected: Boolean(this.feed().error) }),
+  );
+  readonly occupancy = computed(() => this.occupancySummary().observedOccupancy);
+  readonly occupancyView = computed(() =>
+    describeLiveOccupancy(this.occupancySummary(), this.feed().loading),
+  );
   private readonly zoneSnapshot = signal<LiveZone | null>(null);
   readonly zone = computed(() => {
     const snapshot = this.zoneSnapshot();
@@ -122,8 +122,6 @@ export class Live {
   readonly num = inject(LocalizedFormat).number;
   readonly date = inject(LocalizedFormat).timestamp;
   readonly duration = inject(LocalizedFormat).duration;
-  readonly isFresh = (camera: import('../../core/models').LiveCamera) =>
-    camera.dataFreshness === 'Fresh';
   reload(): void {
     this.version.update((value) => value + 1);
   }

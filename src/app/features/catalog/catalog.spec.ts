@@ -50,7 +50,11 @@ describe('catalog forms and concurrency', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { data: { kind: 'sites' }, paramMap: convertToParamMap({}) },
+            snapshot: {
+              queryParamMap: convertToParamMap({}),
+              data: { kind: 'sites' },
+              paramMap: convertToParamMap({}),
+            },
             paramMap: of(convertToParamMap({})),
           },
         },

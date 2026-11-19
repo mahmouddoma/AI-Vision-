@@ -1,97 +1,125 @@
-<header class="page-heading">
-  <div class="page-title-group">
-    <div class="page-title-badge" aria-hidden="true">
-      <app-icon name="chart" />
-    </div>
-    <div>
-      <h1>{{ 'analytics.title' | t }}</h1>
-      <p>{{ 'analytics.subtitle' | t }}</p>
-    </div>
-  </div>
-  <button
-    class="button secondary header-refresh-btn"
-    [disabled]="loading() || !filter()"
-    (click)="reload()"
-  >
-    <app-icon name="refresh" />{{ 'action.refresh' | t }}
-  </button>
-</header>
 <div class="stack">
-  <app-report-filters [busy]="loading()" (changed)="filter.set($event)" />
-  <div
-    class="tabs"
-    role="tablist"
-    [attr.aria-label]="'Analytics reports' | t"
-    (keydown)="onTabsKey($event)"
-  >
-    @for (item of tabs; track item.key) {
-      <button
-        role="tab"
-        [id]="'tab-' + item.key"
-        aria-controls="analytics-panel"
-        [attr.aria-selected]="tab() === item.key"
-        [attr.tabindex]="tab() === item.key ? 0 : -1"
-        (click)="tab.set(item.key)"
+  <section class="analytics-command-bar">
+    <div class="analytics-cmd-top">
+      <div class="analytics-cmd-title">
+        <div class="page-title-badge" aria-hidden="true">
+          <app-icon name="chart" />
+        </div>
+        <h1>{{ 'analytics.title' | t }}</h1>
+      </div>
+      <div class="analytics-cmd-actions">
+        <nav class="subnav-pills" [attr.aria-label]="'Smart analytics' | t">
+          <a
+            routerLink="/analytics/flow"
+            routerLinkActive="active-subnav"
+            queryParamsHandling="preserve"
+            class="subnav-pill"
+          >
+            <app-icon name="chart" />
+            <span>{{ 'Flow rate' | t }}</span>
+          </a>
+          <a
+            routerLink="/analytics/congestion"
+            routerLinkActive="active-subnav"
+            queryParamsHandling="preserve"
+            class="subnav-pill"
+          >
+            <app-icon name="warning" />
+            <span>{{ 'Congestion' | t }}</span>
+          </a>
+          <a
+            routerLink="/analytics/distribution"
+            routerLinkActive="active-subnav"
+            queryParamsHandling="preserve"
+            class="subnav-pill"
+          >
+            <app-icon name="pulse" />
+            <span>{{ 'Dwell distribution' | t }}</span>
+          </a>
+          <a
+            routerLink="/analytics/quality"
+            routerLinkActive="active-subnav"
+            queryParamsHandling="preserve"
+            class="subnav-pill"
+          >
+            <app-icon name="signal" />
+            <span>{{ 'Data quality' | t }}</span>
+          </a>
+          <a
+            routerLink="/analytics/insights"
+            routerLinkActive="active-subnav"
+            queryParamsHandling="preserve"
+            class="subnav-pill"
+          >
+            <app-icon name="overview" />
+            <span>{{ 'Insights' | t }}</span>
+          </a>
+        </nav>
+        <button
+          class="button secondary header-refresh-btn"
+          [disabled]="loading() || !filter()"
+          (click)="reload()"
+        >
+          <app-icon name="refresh" />{{ 'action.refresh' | t }}
+        </button>
+      </div>
+    </div>
+
+    <app-report-filters
+      [busy]="loading()"
+      [defaultExpanded]="false"
+      (changed)="filter.set($event)"
+    />
+
+    <div class="analytics-cmd-tabs">
+      <div
+        class="tabs analytics-tabs"
+        role="tablist"
+        [attr.aria-label]="'Analytics reports' | t"
+        (keydown)="onTabsKey($event)"
       >
-        <app-icon [name]="item.icon" />
-        <span>{{ item.translationKey | t }}</span>
-      </button>
-    }
-  </div>
+        @for (item of tabs; track item.key) {
+          <button
+            role="tab"
+            [id]="'tab-' + item.key"
+            aria-controls="analytics-panel"
+            [attr.aria-selected]="tab() === item.key"
+            [attr.tabindex]="tab() === item.key ? 0 : -1"
+            (click)="tab.set(item.key)"
+          >
+            <app-icon [name]="item.icon" />
+            <span>{{ item.translationKey | t }}</span>
+          </button>
+        }
+      </div>
+
+      @if (period(); as period) {
+        <span class="analytics-period-chip">
+          <app-icon [name]="period.sourceType === 'video_file' ? 'film' : 'calendar'" />
+          @if (period.from && period.to) {
+            <span
+              >{{ date(period.from, period.timeZoneId) }} &rarr;
+              {{ date(period.to, period.timeZoneId) }}</span
+            >
+          } @else {
+            <span
+              >{{ sourceTime(period.fromSourceTimeMs) }} &rarr;
+              {{ sourceTime(period.toSourceTimeMs) }}</span
+            >
+          }
+          <span>&bull;</span>
+          <span>{{ period.interval | t }}</span>
+        </span>
+      }
+    </div>
+  </section>
+
   <section
     id="analytics-panel"
     role="tabpanel"
     [attr.aria-labelledby]="'tab-' + tab()"
     class="stack"
   >
-    @if (period(); as period) {
-      <div class="report-note report-meta-strip">
-        <span class="report-meta-item">
-          <app-icon [name]="period.sourceType === 'video_file' ? 'film' : 'pulse'" />
-          <strong class="report-meta-title">{{
-            period.sourceType === 'video_file' ? ('Recorded video' | t) : ('Live observations' | t)
-          }}</strong>
-        </span>
-        <span class="report-meta-divider" aria-hidden="true">|</span>
-        <span class="report-meta-item">
-          <app-icon name="clock" />
-          <span>{{
-            period.sourceType === 'video_file'
-              ? ('Source-relative timeline' | t)
-              : ('Event time' | t)
-          }}</span>
-        </span>
-        <span class="report-meta-divider" aria-hidden="true">|</span>
-        <span class="report-meta-item">
-          <app-icon name="chart" />
-          <span>{{
-            period.interval === 'hour'
-              ? ('Hour buckets' | t)
-              : (period.interval | t) + (' buckets' | t)
-          }}</span>
-        </span>
-        <span class="report-meta-divider" aria-hidden="true">|</span>
-        <span class="report-meta-item">
-          <app-icon name="location" />
-          <span>{{ period.timeZoneId }}</span>
-        </span>
-        <span class="report-meta-divider" aria-hidden="true">|</span>
-        <span class="report-meta-item">
-          <app-icon name="calendar" />
-          @if (period.from && period.to) {
-            <span
-              >{{ date(period.from, period.timeZoneId) }} →
-              {{ date(period.to, period.timeZoneId) }}</span
-            >
-          } @else {
-            <span
-              >{{ sourceTime(period.fromSourceTimeMs) }} →
-              {{ sourceTime(period.toSourceTimeMs) }}</span
-            >
-          }
-        </span>
-      </div>
-    }
     @if (tab() === 'rankings') {
       <div class="toolbar analytics-toolbar">
         <div class="field analytics-metric-field">
@@ -112,15 +140,6 @@
       </div>
     }
     @if (tab() === 'dwell') {
-      <div class="notice">
-        <app-icon name="info" />
-        <p>
-          {{
-            'Camera-scoped track estimates, not unique visitors or confirmed exits. Occlusion, session changes and video loops can affect dwell. Reported average dwell is the latest matching sample, not a weighted historical average.'
-              | t
-          }}
-        </p>
-      </div>
       <div class="toolbar analytics-toolbar">
         <div class="field analytics-metric-field">
           <label for="dwell-metric">
@@ -164,16 +183,17 @@
       </section>
     } @else {
       @if ((tab() === 'rankings' || tab() === 'dwell') && data()?.rankings; as report) {
-        <section class="surface">
+        <section class="surface stack">
           <div class="section-heading">
-            <div>
-              <h2>{{ tab() === 'dwell' ? ('Dwell ranking' | t) : ('Zone ranking' | t) }}</h2>
-              <p>
-                {{ 'Unit:' | t }} {{ report.unit | t }}
-                {{ '· Ordered by server-calculated values' | t }}
-              </p>
-            </div>
+            <h2>{{ tab() === 'dwell' ? ('Dwell ranking' | t) : ('Zone ranking' | t) }}</h2>
           </div>
+          <app-chart
+            kind="groupedBar"
+            [palette]="tab() === 'dwell' ? 'indigo' : 'sky'"
+            [title]="tab() === 'dwell' ? ('Dwell ranking' | t) : ('Zone ranking' | t)"
+            [points]="rankingPoints()"
+            [primaryLabel]="report.unit | t"
+          />
           <app-table [label]="'Zone rankings' | t"
             ><table>
               <caption class="visually-hidden">
@@ -213,16 +233,21 @@
         </section>
       }
       @if (tab() === 'occupancy') {
-        <div class="notice">
-          <app-icon name="info" />
-          <p>
-            {{
-              'Zone occupancy may include overlapping views. Peak hour is the eligible hour with the highest time-weighted average, not the highest single sample. Missing intervals remain gaps.'
-                | t
-            }}
-          </p>
-        </div>
         @if (data()?.occupancy; as report) {
+          <div class="analytics-chart-grid">
+            @for (zone of report.zones; track zone.zoneId) {
+              <div class="analytics-chart-card">
+                <app-chart
+                  kind="area"
+                  palette="teal"
+                  [title]="zone.zoneName + (' · Occupancy' | t)"
+                  [points]="points(zone.series, report.period)"
+                  [primaryLabel]="'Average occupancy' | t"
+                  [secondaryLabel]="'Peak occupancy' | t"
+                />
+              </div>
+            }
+          </div>
           <section class="surface">
             <h2>{{ 'Occupancy & capacity' | t }}</h2>
             <app-table [label]="'Occupancy summaries' | t"
@@ -278,22 +303,6 @@
                 </tbody></table
             ></app-table>
           </section>
-          <div class="analytics-chart-grid">
-            @for (zone of report.zones; track zone.zoneId) {
-              <div class="analytics-chart-card">
-                <app-chart
-                  [title]="zone.zoneName + (' · Occupancy' | t)"
-                  [description]="
-                    'Average and peak occupancy per period. Gaps represent unknown observations.'
-                      | t
-                  "
-                  [points]="points(zone.series, report.period)"
-                  [primaryLabel]="'Average occupancy' | t"
-                  [secondaryLabel]="'Peak occupancy' | t"
-                />
-              </div>
-            }
-          </div>
         }
         @if (data()?.peaks; as report) {
           <section class="surface">
@@ -462,10 +471,9 @@
           @for (zone of data()?.trends?.zones; track zone.zoneId) {
             <div class="analytics-chart-card">
               <app-chart
+                kind="groupedBar"
+                palette="indigo"
                 [title]="zone.zoneName + (' · Inbound traffic' | t)"
-                [description]="
-                  'Server-derived changes per bucket, not sums of cumulative snapshots.' | t
-                "
                 [points]="points(zone.series, report.period, 'traffic')"
                 [primaryLabel]="'Zone arrivals' | t"
                 [secondaryLabel]="'Gate entries' | t"
@@ -473,6 +481,8 @@
             </div>
             <div class="analytics-chart-card">
               <app-chart
+                kind="groupedBar"
+                palette="coral"
                 [title]="zone.zoneName + (' · Outbound traffic' | t)"
                 [points]="points(zone.series, report.period, 'departures')"
                 [primaryLabel]="'Zone departures' | t"
@@ -483,7 +493,15 @@
         </div>
       }
       @if (tab() === 'dwell' && data()?.dwell; as report) {
-        <section class="surface">
+        <section class="surface stack">
+          <app-chart
+            kind="groupedBar"
+            palette="indigo"
+            [title]="'Dwell metrics' | t"
+            [points]="dwellPoints()"
+            [primaryLabel]="'Latest reported average' | t"
+            [secondaryLabel]="'Estimated historical average' | t"
+          />
           <app-table [label]="'Dwell metrics' | t"
             ><table>
               <caption class="visually-hidden">
@@ -607,6 +625,8 @@
                 {{ num(zone.traffic.wrongWayEvents) }} {{ 'total events' | t }}
               </p>
               <app-chart
+                kind="groupedBar"
+                palette="rose"
                 [title]="zone.zoneName + (' · Wrong-way movement' | t)"
                 [points]="points(zone.series, report.period, 'wrong-way')"
                 [primaryLabel]="'Wrong-way in' | t"
@@ -617,15 +637,6 @@
         </div>
       }
       @if (tab() === 'staff' && data()?.staff; as report) {
-        <div class="notice">
-          <app-icon name="info" />
-          <p>
-            {{
-              'Staff presence is camera-scoped. Overlapping views cannot be added together to count distinct employees.'
-                | t
-            }}
-          </p>
-        </div>
         <div class="analytics-chart-grid">
           @for (camera of report.cameras; track camera.cameraId) {
             <div class="analytics-chart-card">
@@ -633,25 +644,9 @@
                 <h2>{{ camera.cameraName }}</h2>
                 <app-quality [value]="camera.dataQuality" />
               </div>
-              <dl class="detail-list">
-                <div>
-                  <dt>{{ 'Latest staff count' | t }}</dt>
-                  <dd>{{ num(camera.latestStaffCount) }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'Last observation' | t }}</dt>
-                  <dd>{{ date(camera.lastReceivedAtUtc, report.period.timeZoneId) }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'Average staff' | t }}</dt>
-                  <dd>{{ num(camera.averageStaffCount, 1) }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'Peak staff' | t }}</dt>
-                  <dd>{{ num(camera.peakStaffCount) }}</dd>
-                </div>
-              </dl>
               <app-chart
+                kind="area"
+                palette="sky"
                 [title]="camera.cameraName + (' · Staff presence' | t)"
                 [points]="staffPoints(camera.series, report.period)"
                 [primaryLabel]="'Average staff' | t"
@@ -664,7 +659,33 @@
     }
   </section>
   @if (selectedZone()) {
-    <app-dialog [title]="'Zone analysis' | t" (closed)="selectedZone.set(null)">
+    <section class="surface stack" id="zone-analysis-panel">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="zones" class="sec-accent-icon" />
+          <div>
+            <h2>
+              {{ 'Zone analysis' | t }}
+              @if (zoneData(); as detail) {
+                · {{ detail.summary.zoneName }}
+              }
+            </h2>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+          @if (zoneData(); as detail) {
+            <app-quality [value]="detail.summary.dataQuality" />
+          }
+          <button
+            type="button"
+            class="icon-button"
+            [attr.aria-label]="'Close' | t"
+            (click)="selectedZone.set(null)"
+          >
+            <app-icon name="close" />
+          </button>
+        </div>
+      </div>
       @if (zoneLoading() || zoneError()) {
         <app-state
           [loading]="zoneLoading()"
@@ -672,42 +693,38 @@
           (retry)="selectedZone.set(null)"
         />
       } @else if (zoneData(); as detail) {
-        <div class="stack">
-          <div class="section-heading">
-            <h2>{{ detail.summary.zoneName }}</h2>
-            <app-quality [value]="detail.summary.dataQuality" />
+        <dl class="detail-list">
+          <div>
+            <dt>{{ 'Average / peak occupancy' | t }}</dt>
+            <dd>
+              {{ num(detail.summary.averageOccupancy, 1) }} /
+              {{ num(detail.summary.peakOccupancy) }}
+            </dd>
           </div>
-          <dl class="detail-list">
-            <div>
-              <dt>{{ 'Average / peak occupancy' | t }}</dt>
-              <dd>
-                {{ num(detail.summary.averageOccupancy, 1) }} /
-                {{ num(detail.summary.peakOccupancy) }}
-              </dd>
-            </div>
-            <div>
-              <dt>{{ 'Peak position' | t }}</dt>
-              <dd>{{ peakTime(detail.summary.peakAtUtc, detail.summary.peakAtSourceTimeMs) }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'Reported dwell (latest sample)' | t }}</dt>
-              <dd>{{ duration(detail.summary.reportedAverageDwellSeconds) }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'Estimated historical dwell' | t }}</dt>
-              <dd>{{ duration(detail.summary.estimatedHistoricalAverageDwellSeconds) }}</dd>
-            </div>
-          </dl>
-          @for (zone of detail.series.zones; track zone.zoneId) {
-            <app-chart
-              [title]="zone.zoneName + (' · Occupancy' | t)"
-              [points]="points(zone.series, detail.series.period)"
-              [primaryLabel]="'Average' | t"
-              [secondaryLabel]="'Peak' | t"
-            />
-          }
-        </div>
+          <div>
+            <dt>{{ 'Peak position' | t }}</dt>
+            <dd>{{ peakTime(detail.summary.peakAtUtc, detail.summary.peakAtSourceTimeMs) }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'Reported dwell (latest sample)' | t }}</dt>
+            <dd>{{ duration(detail.summary.reportedAverageDwellSeconds) }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'Estimated historical dwell' | t }}</dt>
+            <dd>{{ duration(detail.summary.estimatedHistoricalAverageDwellSeconds) }}</dd>
+          </div>
+        </dl>
+        @for (zone of detail.series.zones; track zone.zoneId) {
+          <app-chart
+            kind="area"
+            palette="teal"
+            [title]="zone.zoneName + (' · Occupancy' | t)"
+            [points]="points(zone.series, detail.series.period)"
+            [primaryLabel]="'Average' | t"
+            [secondaryLabel]="'Peak' | t"
+          />
+        }
       }
-    </app-dialog>
+    </section>
   }
 </div>

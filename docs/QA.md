@@ -1,61 +1,39 @@
 # Frontend delivery and QA evidence
 
-## Delivery boundary
+This workspace now extends the original 37-operation frontend with the verified smart analytics PR contracts. The supplied 60-story document is a delivery target, not evidence that all acceptance criteria have passed. See [SMART_INTEGRATION.md](SMART_INTEGRATION.md) and the complete [API_COVERAGE.md](API_COVERAGE.md).
 
-All application areas from the supplied backlog have frontend implementations. This is not a declaration that all Jira stories are Done: the backlog contains proposed story IDs, not connected Jira issue keys, and actual backend/MQTT release verification is blocked. No Jira issues or statuses were mutated.
+## Implemented and source-reviewed
 
-| Story | Implementation                                                                                    | Verification / remaining evidence                                                                  |
-| ----- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| FE-01 | Standalone lazy routes, fallback, pre-bootstrap runtime config, common HTTP client                | Production build; config and URL tests; browser route checks                                       |
-| FE-02 | Responsive shell, tokens and shared UI components                                                 | Desktop/mobile screenshots; keyboard dialog test; DESIGN.md                                        |
-| FE-03 | Typed catalog/live/report/session contracts, error mapping, pagination and concurrency recovery   | HTTP/query/error unit tests; runtime Swagger comparison pending                                    |
-| FE-04 | Sites search, paging, create/edit and activation                                                  | Desktop/mobile browser create/edit/status and 409 reload scenarios                                 |
-| FE-05 | Camera registry, site scope, string external IDs and derived topic                                | Camera browser scenario; topic ID validation test                                                  |
-| FE-06 | Camera-scoped zones, nullable capacity and ordered thresholds                                     | Zone browser scenario; real duplicate-scope enforcement depends on server                          |
-| FE-07 | Real-API overview, scoped occupancy, historical highlights, chart and health                      | Fixture-backed desktop/mobile overview; actual values pending backend                              |
-| FE-08 | Site live view, camera search/freshness filter, nullable zone metrics                             | Browser routes; live source and actual stream timing pending                                       |
-| FE-09 | Camera route and zone inspection with analytics link                                              | Browser routes and shared state; real-data drawer inspection pending                               |
-| FE-10 | Four event handlers, scoped groups, ordering, reconnect, polling and cleanup                      | Reducer and mocked-hub reconnect/resync unit tests; actual hub outage pending                      |
-| FE-11 | Cascading filters, UTC ranges, video session/offsets and interval validation                      | Filter unit tests; browser assertion that video queries omit from/to                               |
-| FE-12 | Metric rankings and zone summary/timeseries dialog                                                | Browser ranking/drilldown and accessible data-table test                                           |
-| FE-13 | Occupancy, peaks, utilization and gaps                                                            | Browser occupancy tab and chart gap unit test                                                      |
-| FE-14 | Separate arrivals/entries and departures/exits, server-derived traffic trends                     | Browser traffic tab; source contract review                                                        |
-| FE-15 | Reported/estimated dwell, uncertain visits and ranking metrics                                    | Browser dwell tab; null/source semantics tests                                                     |
-| FE-16 | Wrong-way and per-camera staff summaries/series                                                   | Browser tabs; no distinct-employee or violation-percentage claims                                  |
-| FE-17 | Searchable, scoped and paginated sessions                                                         | Browser route and video metadata flow                                                              |
-| FE-18 | Session metadata, source-time occupancy/traffic/staff and missing positions                       | Browser video report query assertion; real recorded-session validation pending                     |
-| FE-19 | Separate liveness/readiness, 503 and degraded MQTT status                                         | Browser 503 readiness/error test; actual MQTT degradation pending                                  |
-| FE-20 | Quality metadata, partial-coverage disclosure and truthful null/time labels                       | Quality/format/chart unit tests and source-time browser assertions                                 |
-| FE-21 | Mobile navigation, responsive content, scrollable tables, chart alternatives and focus management | Desktop/mobile browser layout and focus checks; manual screen-reader audit not performed           |
-| FE-22 | Unit/component/service and fixture-based browser suites                                           | Commands and results below                                                                         |
-| FE-23 | Separate real-backend integration suite and runbook prepared                                      | BLOCKED: API unavailable at localhost:5080; no SQL/MQTT integration run or real ingestion evidence |
-| FE-24 | Setup, routes/API map, design system, backend runbook and release checklist                       | Documentation supplied; real backend screenshots and final QA sign-off still pending               |
+- Existing Angular 21 app retained, with lazy resource, setup, health, analytics, floor and alert routes.
+- 63 of the handoff's 65 operations have frontend consumers: 37 baseline plus 26 typed PR operations.
+- Smart quality/provenance, null/zero distinctions, video loop/source-time filters and eight visualization types.
+- Versioned floor metadata, activation, polygon editing, keyboard coordinates, pointer dragging, layout deletion and measured heatmaps.
+- Alerts, evidence, acknowledgement, disabled-rule resolution, rule forms, immutable scope and optimistic concurrency.
+- Optional external OIDC authorization code/PKCE, token renewal/session handling, REST/hub token delivery and role/site-aware controls.
+- Fifth SignalR event: ordered/coalesced alert invalidations, REST refresh, reconnect resubscription, polling and cleanup.
+- IIS SPA fallback and no-store runtime config supplied, without deployment.
+
+Setup reuses the existing registry editors through a guided setup page. Zone analytics routes provide resource/live inspection and filtered links to the existing historical reports. Comparison/forecast pages are not invented for unexposed endpoints.
 
 ## Executed checks
 
-- `npm run build`: PASS, production compilation within the existing initial-bundle budget (452.03 kB initial raw assets; about 109.29 kB estimated transfer).
-- `npm test -- --watch=false`: PASS, 26 tests across 7 files at the recorded verification point. Coverage includes config failure, URL/query omission, lookup pagination, 204 status patch, 409 trace/reload behavior, form validation, stale/mismatched event rejection, reconnect/resubscribe/REST resync, source-time queries, insufficient chart gaps and quality labels.
-- `npm run test:e2e`: PASS, 15 scenarios across desktop (1440x1000) and mobile (390x844); the mobile-only navigation scenario is intentionally skipped on desktop. Responses are synthetic fixtures from e2e/fixtures.ts, never production data. The application itself has no demo-data fallback.
-- `python .agents/validate_agent.py`: agent configuration check, separate from application functionality.
-- `npm run test:e2e:live`: NOT RUN. The backend port was unavailable; no claim of MQTT -> SQL -> REST/SignalR -> Angular success is made.
+- `npm run build`: PASS. Production initial assets are 636.13 kB raw / 140.66 kB estimated transfer, below the existing 650 kB warning budget. The OIDC client is a separate lazy chunk.
+- `npm test -- --watch=false`: PASS, 44 tests across 13 files. Includes typed requests, concurrency, role/site restrictions, token origin boundaries, geometry, signed/gapped chart data and ordered alert invalidations/reconnect cleanup.
+- `npm run test:e2e`: PASS, 34 checks across desktop (1440x1000) and mobile (390x844), with two intentional viewport-specific skips. Covers original workflows, Arabic/English regression, new route layouts, reader permissions, floor conflict recovery, versioned polygons, rule scope and acknowledgement persistence.
+- `npm run typecheck:e2e`: PASS.
+- `python .agents/validate_agent.py`: PASS for project instruction/manifest/reference structure; does not verify external connectivity.
+- `git diff --check`: PASS.
 
-Screenshots are generated at `artifacts/overview-desktop.png`, `artifacts/overview-mobile.png` and `artifacts/sites-mobile.png`. Test data explicitly names Main Mall as a test fixture. Playwright's report and retained failure traces are local generated outputs, ignored by Git.
+Browser suites use synthetic fixtures from `e2e/fixtures.ts` and `e2e/smart-fixtures.ts`, not the configured LAN backend. Screenshots are generated under `artifacts/`, including desktop/mobile overview and floor heatmap views. Desktop and mobile heatmap output was visually inspected. Browser reports and traces remain ignored local output.
 
-## Release checklist
+## Blocked or not run
 
-- [x] Typed builds and component/service checks pass.
-- [x] Desktop/mobile route and form workflows pass with mock responses.
-- [x] Runtime config contains no server/broker credentials.
-- [x] No fake KPIs, unsupported CRUD or video playback controls in the application.
-- [ ] Compare models against the running Swagger version.
-- [ ] Run real publisher-backed tests per INTEGRATION.md and retain request/response evidence.
-- [ ] Verify new-session ordering, freshness transitions and reconnect against the actual server.
-- [ ] Check keyboard/screen reader with the release browser/device set.
-- [ ] Review dependency security advisories before release. npm reported 16 moderate advisories during installation; no forced framework/dependency upgrades were applied.
-- [ ] Attach real backend screenshots and sign off actual Jira issues in the team's tracker.
+- On 2026-11-18 read-only probes returned HTTP 500 from configured LAN Swagger, health/live, health/ready, sites and smart FPS visualization. Earlier successful baseline LAN connectivity does not establish current availability.
+- Backend PR #1 was open/unmerged when inspected. The deployed commit and live Swagger schema cannot currently be verified.
+- `/analytics/comparisons` and `/analytics/forecast` are absent from PR HTTP controllers and Program.cs, despite being listed in the handoff. Internal algorithms/DTOs do not establish callable APIs. FE-045/046 remain blocked on a verified contract.
+- Actual identity-provider discovery/login/logout/renewal needs deployment-specific Authority, SPA Client ID, scopes/audience and callback registration. Role tests use synthetic JWT claims and do not validate a real identity server.
+- Real MQTT -> SQL -> REST/SignalR UAT, durable congestion/alert recovery, video-loop data correctness and sustained load are not verified. The real-backend suite was not run against the failing server.
+- IIS deployment, CORS/WebSocket validation on the release host, manual screen-reader testing and release sign-off were not performed.
+- `npm ci` was not rerun during this change. The lockfile was updated by the OIDC dependency installation; no forced dependency/framework upgrades were applied.
 
-## LAN server connectivity update
-
-Runtime configuration now points to `http://192.168.1.8:8005`. Read-only health checks returned HTTP 200: liveness Healthy, readiness Healthy, database Ready, MQTT Subscribed. In a real Chrome browser at `http://localhost:4200`, sites, monitoring status, cameras, site live state, analytics overview and occupancy returned HTTP 200; hub negotiation succeeded and the UI reported Connected with no browser runtime errors.
-
-The earlier localhost:5080 availability blocker was specific to the original implementation run. FE-23 now remains pending publisher-driven state changes, full reconnect/ingestion verification and release sign-off, rather than basic server reachability. No registry records or MQTT messages were written during this connectivity check.
+No backend records, broker messages, Jira issues or deployment state were mutated during this implementation.

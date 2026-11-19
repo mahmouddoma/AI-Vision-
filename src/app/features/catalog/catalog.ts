@@ -120,6 +120,8 @@ export class Catalog {
     };
   });
   constructor() {
+    const siteId = this.route.snapshot.queryParamMap.get('siteId');
+    if (siteId) this.context.selectedSiteId.set(siteId);
     afterNextRender(() => {
       this.animateEntrance();
     });

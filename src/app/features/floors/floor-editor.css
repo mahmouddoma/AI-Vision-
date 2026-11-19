@@ -1,0 +1,27 @@
+.polygon-canvas {
+  width: 100%;
+  max-height: 60vh;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  cursor: crosshair;
+}
+.saved-polygon {
+  fill: var(--accent-soft);
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+.draft-polygon {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+circle {
+  fill: var(--accent-dark);
+  cursor: grab;
+  touch-action: none;
+}
+.vertex-list {
+  max-height: 40vh;
+  overflow-y: auto;
+}

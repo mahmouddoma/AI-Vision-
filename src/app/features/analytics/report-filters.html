@@ -33,7 +33,7 @@
         <select
           id="filter-source"
           [ngModel]="source()"
-          (ngModelChange)="source.set($event); sessionId.set('')"
+          (ngModelChange)="setSource($event)"
           name="source"
           [disabled]="!!session()"
         >
@@ -43,33 +43,53 @@
       </div>
       <div class="filter-field">
         <label for="filter-camera"><app-icon name="camera" />{{ 'filters.camera' | t }}</label>
-        <select
-          id="filter-camera"
-          [ngModel]="cameraId()"
-          (ngModelChange)="setCamera($event)"
-          name="camera"
-          [disabled]="!!session()"
-        >
-          <option value="">{{ 'filters.allCameras' | t }}</option>
-          @for (camera of cameras(); track camera.id) {
-            <option [value]="camera.id">{{ camera.name }}</option>
-          }
-        </select>
+        @if (context.auth.administrator()) {
+          <select
+            id="filter-camera"
+            [ngModel]="cameraId()"
+            (ngModelChange)="setCamera($event)"
+            name="camera"
+            [disabled]="!!session()"
+          >
+            <option value="">{{ 'filters.allCameras' | t }}</option>
+            @for (camera of cameras(); track camera.id) {
+              <option [value]="camera.id">{{ camera.name }}</option>
+            }
+          </select>
+        } @else {
+          <input
+            id="filter-camera"
+            name="cameraId"
+            [ngModel]="cameraId()"
+            (ngModelChange)="setCamera($event)"
+            placeholder="GUID"
+          />
+        }
       </div>
       <div class="filter-field">
         <label for="filter-zone"><app-icon name="zones" />{{ 'filters.zone' | t }}</label>
-        <select
-          id="filter-zone"
-          [ngModel]="zoneId()"
-          (ngModelChange)="zoneId.set($event)"
-          name="zone"
-          [disabled]="!cameraId()"
-        >
-          <option value="">{{ 'filters.allZones' | t }}</option>
-          @for (zone of zones(); track zone.id) {
-            <option [value]="zone.id">{{ zone.name }}</option>
-          }
-        </select>
+        @if (context.auth.administrator()) {
+          <select
+            id="filter-zone"
+            [ngModel]="zoneId()"
+            (ngModelChange)="zoneId.set($event)"
+            name="zone"
+            [disabled]="!cameraId()"
+          >
+            <option value="">{{ 'filters.allZones' | t }}</option>
+            @for (zone of zones(); track zone.id) {
+              <option [value]="zone.id">{{ zone.name }}</option>
+            }
+          </select>
+        } @else {
+          <input
+            id="filter-zone"
+            name="zoneId"
+            [ngModel]="zoneId()"
+            (ngModelChange)="zoneId.set($event)"
+            placeholder="GUID"
+          />
+        }
       </div>
       <div class="filter-field">
         <label for="filter-interval"><app-icon name="clock" />{{ 'filters.interval' | t }}</label>
@@ -85,7 +105,7 @@
         </select>
       </div>
     </div>
-    <div class="filter-row filter-row-time">
+    <div class="filter-row filter-row-time" [class.is-video]="source() === 'video_file'">
       @if (source() === 'live') {
         <div class="filter-field">
           <label for="filter-from"
@@ -116,23 +136,49 @@
           <label for="filter-session"
             ><app-icon name="film" />{{ 'filters.videoSession' | t }}</label
           >
-          <select
-            id="filter-session"
-            [ngModel]="sessionId()"
-            (ngModelChange)="sessionId.set($event)"
-            name="sessionId"
-            [disabled]="!!session()"
-          >
-            <option value="">{{ 'filters.selectSession' | t }}</option>
-            @if (session(); as current) {
-              <option [value]="current.id">{{ current.sourceName }}</option>
+          @if (context.auth.administrator()) {
+            <select
+              id="filter-session"
+              [ngModel]="sessionId()"
+              (ngModelChange)="setSession($event)"
+              name="sessionId"
+              [disabled]="!!session()"
+            >
+              <option value="">{{ 'filters.selectSession' | t }}</option>
+              @if (session(); as current) {
+                <option [value]="current.id">{{ current.sourceName }}</option>
+              }
+              @for (item of sessions(); track item.id) {
+                <option [value]="item.id">
+                  {{ item.cameraName }} · {{ item.sourceName }} · {{ item.externalSessionId }}
+                </option>
+              }
+            </select>
+          } @else {
+            <input
+              id="filter-session"
+              name="sessionId"
+              [ngModel]="sessionId()"
+              (ngModelChange)="sessionId.set($event)"
+              placeholder="GUID"
+            />
+          }
+        </div>
+        <div class="filter-field">
+          <label for="filter-loop">{{ 'Video loop' | t }}</label>
+          <input
+            id="filter-loop"
+            name="videoLoop"
+            [value]="videoLoop()"
+            (change)="setLoop($any($event.target).value)"
+            list="video-loops"
+          />
+          <datalist id="video-loops">
+            <option value="unmarked"></option>
+            @for (loop of availableVideoLoops(); track $index) {
+              <option [value]="loop ?? 'unmarked'"></option>
             }
-            @for (item of sessions(); track item.id) {
-              <option [value]="item.id">
-                {{ item.cameraName }} · {{ item.sourceName }} · {{ item.externalSessionId }}
-              </option>
-            }
-          </select>
+          </datalist>
         </div>
         <div class="filter-field">
           <label for="filter-from-ms"

@@ -132,9 +132,13 @@
                     </span>
                     <div class="entity-info">
                       @if (kind === 'cameras') {
-                        <a class="entity-link" [routerLink]="['/live', row.id]">{{ row.name }}</a>
+                        <a class="entity-link" [routerLink]="['/cameras', row.id]">{{
+                          row.name
+                        }}</a>
                       } @else {
-                        <span class="entity-name">{{ row.name }}</span>
+                        <a class="entity-link" [routerLink]="['/' + kind, row.id]">{{
+                          row.name
+                        }}</a>
                       }
                     </div>
                   </div>

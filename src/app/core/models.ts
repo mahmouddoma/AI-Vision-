@@ -141,8 +141,11 @@ export interface ReportFilter {
   sessionId?: string;
   fromSourceTimeMs?: number;
   toSourceTimeMs?: number;
+  videoLoop?: number | 'unmarked';
 }
 export interface ReportPeriod {
+  videoLoop?: number | null;
+  sessionId?: string;
   sourceType: SourceType;
   timeBasis: string;
   interval: Interval;
@@ -321,6 +324,7 @@ export interface StaffReport {
   cameras: StaffCamera[];
 }
 export interface Session {
+  lastVideoLoop?: number | null;
   id: string;
   cameraId: string;
   cameraName: string;
@@ -340,6 +344,7 @@ export interface Session {
   createdAtUtc: string;
 }
 export interface SessionReport {
+  availableVideoLoops?: (number | null)[];
   session: Session;
   analytics: ReportResult;
   staff: StaffReport;

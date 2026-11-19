@@ -1,0 +1,210 @@
+<nav class="breadcrumbs" [attr.aria-label]="'Breadcrumb' | t">
+  <a routerLink="/floors">{{ 'Floors' | t }}</a
+  ><span>/ {{ result().data?.floor?.name }}</span>
+</nav>
+<header class="page-heading">
+  <div>
+    <h1>{{ (heatmapMode ? 'Floor heatmap' : 'Zone polygon editor') | t }}</h1>
+    <p>{{ 'Normalized zone geometry on a neutral floor canvas.' | t }}</p>
+  </div>
+  <a
+    class="button secondary"
+    [routerLink]="['/floors', id(), heatmapMode ? 'editor' : 'heatmap']"
+    >{{ (heatmapMode ? 'Edit polygons' : 'Heatmap') | t }}</a
+  >
+</header>
+<div class="stack">
+  @if (result().loading || result().error) {
+    <app-state [loading]="result().loading" [error]="result().error" (retry)="reload()" />
+  }
+  @if (result().data; as data) {
+    @if (heatmapMode) {
+      <app-report-filters [requireVideoBounds]="true" (changed)="filter.set($event)" />
+      <div class="field">
+        <label for="floor-editor-field-1">{{ 'Metric' | t }}</label
+        ><select
+          id="floor-editor-field-1"
+          [ngModel]="metric()"
+          (ngModelChange)="metric.set($event)"
+        >
+          @for (m of ['arrivals', 'averageOccupancy', 'peakOccupancy', 'utilization']; track m) {
+            <option [value]="m">{{ m }}</option>
+          }
+        </select>
+      </div>
+      @if (heatmap().loading || heatmap().error) {
+        <app-state [loading]="heatmap().loading" [error]="heatmap().error" (retry)="reload()" />
+      }
+      @if (heatmap().value; as value) {
+        <section class="surface"><app-visualization [value]="value" /></section>
+      }
+    } @else {
+      <section class="surface stack">
+        <fieldset [disabled]="saving() || !auth.canWrite(data.floor.siteId)">
+          <div class="toolbar">
+            <div class="field">
+              <label for="floor-editor-field-2">{{ 'Camera' | t }}</label>
+              @if (auth.administrator()) {
+                <select
+                  id="floor-editor-field-2"
+                  [ngModel]="cameraId()"
+                  (ngModelChange)="cameraId.set($event); selectZone('')"
+                >
+                  <option value="">{{ 'Select camera' | t }}</option>
+                  @for (c of data.cameras; track c.id) {
+                    <option [value]="c.id">{{ c.name }}</option>
+                  }
+                </select>
+              } @else {
+                <input
+                  id="floor-editor-field-2"
+                  [ngModel]="cameraId()"
+                  (ngModelChange)="cameraId.set($event); selectZone('')"
+                  placeholder="GUID"
+                />
+              }
+            </div>
+            <div class="field">
+              <label for="floor-editor-field-3">{{ 'Zone' | t }}</label>
+              @if (auth.administrator()) {
+                <select
+                  id="floor-editor-field-3"
+                  [ngModel]="zoneId()"
+                  (ngModelChange)="selectZone($event)"
+                  [disabled]="!cameraId()"
+                >
+                  <option value="">{{ 'Select zone' | t }}</option>
+                  @for (z of zones(); track z.id) {
+                    <option [value]="z.id">{{ z.name }}</option>
+                  }
+                </select>
+              } @else {
+                <input
+                  id="floor-editor-field-3"
+                  [ngModel]="zoneId()"
+                  (ngModelChange)="selectZone($event)"
+                  placeholder="GUID"
+                />
+              }
+            </div>
+          </div>
+          <p>
+            {{
+              'Select a zone, then click the canvas to add vertices. Edit coordinates below with the keyboard.'
+                | t
+            }}
+          </p>
+          <svg
+            class="polygon-canvas"
+            viewBox="0 0 1000 700"
+            role="img"
+            [attr.aria-label]="'Zone polygon canvas' | t"
+            (click)="addPoint($event)"
+          >
+            @for (l of data.layouts; track l.zoneId) {
+              @if (l.zoneId !== zoneId()) {
+                <polygon [attr.points]="polygon(l.vertices)" class="saved-polygon">
+                  <title>{{ l.zoneName }}</title>
+                </polygon>
+              }
+            }
+            <polygon [attr.points]="polygon(vertices())" class="draft-polygon" />
+            @for (v of vertices(); track $index) {
+              <circle
+                [attr.cx]="v.x * 1000"
+                [attr.cy]="v.y * 700"
+                r="6"
+                (pointerdown)="startDrag($event, $index)"
+                (pointermove)="drag($event)"
+                (pointerup)="endDrag()"
+                (pointercancel)="endDrag()"
+                (click)="$event.stopPropagation()"
+              />
+            }
+          </svg>
+          <div class="vertex-list">
+            @for (v of vertices(); track $index; let index = $index) {
+              <div class="toolbar">
+                <span>{{ index + 1 }}</span>
+                <div class="field">
+                  <label [for]="'floor-editor-field-4-' + index">X</label
+                  ><input
+                    [id]="'floor-editor-field-4-' + index"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.001"
+                    [ngModel]="v.x"
+                    (ngModelChange)="move(index, 'x', $event)"
+                  />
+                </div>
+                <div class="field">
+                  <label [for]="'floor-editor-field-5-' + index">Y</label
+                  ><input
+                    [id]="'floor-editor-field-5-' + index"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.001"
+                    [ngModel]="v.y"
+                    (ngModelChange)="move(index, 'y', $event)"
+                  />
+                </div>
+                <button class="button quiet" (click)="remove(index)">
+                  {{ 'Remove vertex' | t }}
+                </button>
+              </div>
+            }
+          </div>
+          <button
+            class="button secondary"
+            [disabled]="!zoneId() || vertices().length >= 64"
+            (click)="vertices.set(vertices().concat({ x: 0.5, y: 0.5 }))"
+          >
+            {{ 'Add vertex' | t }}
+          </button>
+          @if (polygonError()) {
+            <p class="field-error" role="status">{{ polygonError() | t }}</p>
+          }
+          @if (error(); as e) {
+            <div class="notice error" role="alert">
+              <p>{{ e.message }}</p>
+              @for (field of errorFields(e); track $index) {
+                <p>{{ field }}</p>
+              }
+              @if (e.conflict) {
+                <button class="button secondary" (click)="reload()">
+                  {{ 'Reload latest record' | t }}
+                </button>
+              }
+            </div>
+          }
+          <div class="button-group">
+            <button
+              class="button"
+              [disabled]="!zoneId() || !!polygonError() || saving() || error()?.conflict"
+              (click)="save()"
+            >
+              {{ 'Save polygon' | t }}
+            </button>
+            @if (layout()) {
+              <button class="button secondary" [disabled]="saving()" (click)="deleting.set(true)">
+                {{ 'Delete layout' | t }}
+              </button>
+            }
+          </div>
+          @if (deleting()) {
+            <div class="notice warning" role="alert">
+              <p>{{ 'Remove this saved zone polygon?' | t }}</p>
+              <button class="button" [disabled]="saving()" (click)="delete()">
+                {{ 'Confirm delete' | t }}</button
+              ><button class="button secondary" [disabled]="saving()" (click)="deleting.set(false)">
+                {{ 'Cancel' | t }}
+              </button>
+            </div>
+          }
+        </fieldset>
+      </section>
+    }
+  }
+</div>
