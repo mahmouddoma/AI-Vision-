@@ -73,6 +73,7 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'Measurements retain their coverage and provenance. Zone totals are not unique site visitors.':
       'تُعرض القياسات مع مصدرها وتغطيتها. إجماليات المناطق لا تمثل زوارًا فريدين للموقع.',
     Metric: 'المؤشر',
+    Metrics: 'المؤشرات',
     'Minimum coverage % (server default when empty)':
       'الحد الأدنى للتغطية ٪ (الافتراضي عند تركه فارغًا)',
     'Minimum observed seconds': 'الحد الأدنى لمدة الرصد بالثواني',
@@ -120,6 +121,30 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'MQTT Disabled': 'MQTT معطّل',
     'Migration required': 'مطلوب ترحيل قاعدة البيانات',
     Superseded: 'مستبدلة',
+    'events/min': 'حدث/دقيقة',
+    'FPS (Processing)': 'إطار/ثانية (معالجة)',
+    'Qualified observations': 'مشاهدات مؤهلة',
+    'Active visitor dwell durations': 'مدد بقاء الزوار النشطين',
+    'Evaluated at': 'وقت التقييم',
+    'Processing frame rates, sequence reception, and latency tracking per camera.':
+      'تتبع معدلات الإطارات والتسلسلات وزمن الوصول لكل كاميرا.',
+    'No pipeline rejections observed in this window.':
+      'لم يتم رصد أي حالات استبعاد في هذه الفترة.',
+    'Dynamic polymorphic chart representation with quality indicators.':
+      'عرض رسوم بيانية تفاعلية مع مؤشرات جودة البيانات.',
+    'Warning & Critical percentage thresholds apply per zone rule.':
+      'تُطبّق حدود التحذير والخطر وفق قاعدة كل منطقة.',
+    Latency: 'زمن الوصول',
+    'report.partialResults': 'نتائج جزئية — تعذر تحميل بعض التقارير، بينما تبقى التقارير المتاحة معروضة.',
+    'report.unavailable': 'التقرير غير متاح حالياً. يرجى المحاولة مرة أخرى.',
+    'report.retrying': 'جارٍ إعادة المحاولة...',
+    'report.failedRefresh': 'فشل تحديث التقرير.',
+    'report.showingPreviousData': 'فشل التحديث الأخير. يتم عرض البيانات المحملة سابقاً.',
+    'report.peakHoursUnavailable': 'تعذر تحميل بيانات ساعات الذروة. يرجى إعادة المحاولة.',
+    'report.utilizationUnavailable': 'تعذر تحميل بيانات استغلال السعة. يرجى إعادة المحاولة.',
+    'report.trendsUnavailable': 'تعذر تحميل اتجاهات حركة المرور. يرجى إعادة المحاولة.',
+    'report.overviewUnavailable': 'تعذر تحميل ملخص النظرة العامة. يرجى إعادة المحاولة.',
+    'report.occupancyUnavailable': 'تعذر تحميل تقرير الإشغال التاريخي. يرجى إعادة المحاولة.',
     'Persistent alerts and observed recovery from the analytics server.':
       'تنبيهات محفوظة وحالات تعافٍ مرصودة من خادم التحليلات.',
     'Publish supported metadata to the camera topic using your configured publisher, then check MQTT freshness and live measurements.':
@@ -753,6 +778,17 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     Confirm: 'تأكيد',
     'Camera detail': 'تفاصيل الكاميرا',
     'Last REST sync': 'آخر مزامنة REST',
+    'Zone analytics': 'تحليلات المنطقة',
+    'Active visitors': 'الزوار النشطون',
+    Incoming: 'الدخول',
+    Outgoing: 'الخروج',
+    'Zone flow': 'حركة المنطقة',
+    'Gate flow': 'حركة البوابات',
+    'Wrong-way': 'عكس السير',
+    'Movement flow comparison': 'مقارنة تدفق الحركة',
+    'Movement distribution': 'توزيع الحركة',
+    'Total movements': 'إجمالي الحركات',
+    Thresholds: 'حدود التنبيه',
     'Waiting for the first observation': 'في انتظار أول مشاهدة',
     'Expand zones': 'توسيع المناطق',
     'Collapse zones': 'طي المناطق',
@@ -955,6 +991,7 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'Measurements retain their coverage and provenance. Zone totals are not unique site visitors.':
       'Measurements retain their coverage and provenance. Zone totals are not unique site visitors.',
     Metric: 'Metric',
+    Metrics: 'Metrics',
     'Minimum coverage % (server default when empty)':
       'Minimum coverage % (server default when empty)',
     'Minimum observed seconds': 'Minimum observed seconds',
@@ -1003,6 +1040,30 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'MQTT Disabled': 'MQTT Disabled',
     'Migration required': 'Migration required',
     Superseded: 'Superseded',
+    'events/min': 'events/min',
+    'FPS (Processing)': 'FPS (Processing)',
+    'Qualified observations': 'Qualified observations',
+    'Active visitor dwell durations': 'Active visitor dwell durations',
+    'Evaluated at': 'Evaluated at',
+    'Processing frame rates, sequence reception, and latency tracking per camera.':
+      'Processing frame rates, sequence reception, and latency tracking per camera.',
+    'No pipeline rejections observed in this window.':
+      'No pipeline rejections observed in this window.',
+    'Dynamic polymorphic chart representation with quality indicators.':
+      'Dynamic polymorphic chart representation with quality indicators.',
+    'Warning & Critical percentage thresholds apply per zone rule.':
+      'Warning & Critical percentage thresholds apply per zone rule.',
+    Latency: 'Latency',
+    'report.partialResults': 'Partial results — some reports failed to load while available reports remain displayed.',
+    'report.unavailable': 'Report unavailable. Please retry.',
+    'report.retrying': 'Retrying...',
+    'report.failedRefresh': 'Failed to refresh report.',
+    'report.showingPreviousData': 'Latest refresh failed. Showing previously loaded data.',
+    'report.peakHoursUnavailable': 'Unable to load Peak Hours data. Please retry.',
+    'report.utilizationUnavailable': 'Unable to load Utilization data. Please retry.',
+    'report.trendsUnavailable': 'Unable to load Traffic Trends data. Please retry.',
+    'report.overviewUnavailable': 'Unable to load Overview summary metrics. Please retry.',
+    'report.occupancyUnavailable': 'Unable to load historical Occupancy report. Please retry.',
     'Persistent alerts and observed recovery from the analytics server.':
       'Persistent alerts and observed recovery from the analytics server.',
     'Publish supported metadata to the camera topic using your configured publisher, then check MQTT freshness and live measurements.':
@@ -1560,6 +1621,17 @@ export const DICTIONARY: Record<Lang, Record<string, string>> = {
     'Live counters are cumulative snapshots. Occupancy is directly reported and may differ from arrivals minus departures.':
       'Live counters are cumulative snapshots. Occupancy is directly reported and may differ from arrivals minus departures.',
     'Open zone analytics': 'Open zone analytics',
+    'Zone analytics': 'Zone analytics',
+    'Active visitors': 'Active visitors',
+    Incoming: 'Incoming',
+    Outgoing: 'Outgoing',
+    'Zone flow': 'Zone flow',
+    'Gate flow': 'Gate flow',
+    'Wrong-way': 'Wrong-way',
+    'Movement flow comparison': 'Movement flow comparison',
+    'Movement distribution': 'Movement distribution',
+    'Total movements': 'Total movements',
+    Thresholds: 'Thresholds',
     'Your insights start with a place': 'Your insights start with a place',
     'Create a site, register your cameras, then define their observation zones. Your real activity will appear here as analytics arrive.':
       'Create a site, register your cameras, then define their observation zones. Your real activity will appear here as analytics arrive.',

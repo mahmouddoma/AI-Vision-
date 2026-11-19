@@ -65,11 +65,8 @@
   } @else if (result().alert; as a) {
     <section class="surface stack">
       <div class="section-heading">
-        <h2>{{ a.kind }}</h2>
-        <div class="button-group">
-          <app-status [value]="a.severity" />
-          <app-status [value]="a.status" />
-        </div>
+        <h2>{{ a.kind }} <app-status [value]="a.status" /></h2>
+        <app-status [value]="a.severity" />
       </div>
       <dl class="detail-list">
         <div>

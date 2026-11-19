@@ -79,7 +79,6 @@
     />
   </section>
 
-  <!-- Loading / Error Feedback -->
   @if (result().loading || result().error) {
     <section class="surface smart-card">
       <app-state [loading]="result().loading" [error]="result().error ?? null" (retry)="reload()" />
@@ -88,220 +87,367 @@
 
   <!-- ================= PAGE 1: FLOW RATE ================= -->
   @if (flowVm(); as vm) {
-    <!-- Flow Rate KPI Strip -->
-    <div class="analytics-kpi-grid">
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'Arrival rate' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-teal"><app-icon name="trendUp" /></span>
+    <div class="kpi-strip">
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-teal"><app-icon name="trendUp" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'Arrival rate' | t }}</span>
+            <span class="kpi-sub">{{ 'events/min' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">
-          {{ vm.avgArrivals != null ? num(vm.avgArrivals, 1) : 'N/A' }}
-        </div>
-        <div class="analytics-kpi-sub">events/min ({{ 'action.all' | t }})</div>
-      </article>
+        <strong class="kpi-num">{{
+          vm.avgArrivals != null ? num(vm.avgArrivals, 1) : ('N/A' | t)
+        }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'Departure rate' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-blue"><app-icon name="trendUp" /></span>
-        </div>
-        <div class="analytics-kpi-value">
-          {{ vm.avgDepartures != null ? num(vm.avgDepartures, 1) : 'N/A' }}
-        </div>
-        <div class="analytics-kpi-sub">events/min ({{ 'action.all' | t }})</div>
-      </article>
+      <div class="kpi-sep"></div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.netFlowBalance' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-green"><app-icon name="chart" /></span>
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-blue"><app-icon name="trendUp" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'Departure rate' | t }}</span>
+            <span class="kpi-sub">{{ 'events/min' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value" [class.text-danger]="vm.netBalance < 0">
-          {{ num(vm.netBalance, 0) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Traffic balance' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{
+          vm.avgDepartures != null ? num(vm.avgDepartures, 1) : ('N/A' | t)
+        }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.highestActivityZone' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-amber"><app-icon name="zones" /></span>
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-green"><app-icon name="chart" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.netFlowBalance' | t }}</span>
+            <span class="kpi-sub">{{ 'Traffic balance' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value" style="font-size: 18px; line-height: 1.4">
-          {{ vm.peakZoneName }}
+        <strong class="kpi-num" [class.text-danger]="vm.netBalance < 0">{{
+          num(vm.netBalance)
+        }}</strong>
+      </div>
+
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-amber"><app-icon name="zones" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.busiestZone' | t }}</span>
+            <span class="kpi-sub">{{ 'analytics.peakUtilization' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-sub">{{ 'analytics.peakUtilization' | t }}</div>
-      </article>
+        <strong class="kpi-num" style="font-size: 20px">{{ vm.peakZoneName | t }}</strong>
+      </div>
     </div>
 
-    <!-- 12-Column Grid -->
-    <div class="analytics-workspace-grid">
-      <!-- 8 Columns: Primary Temporal Flow Chart -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="chart" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.temporalFlow' | t }}</h2>
-              <p class="section-subtitle">
-                {{
-                  'Arrival and departure flow rates, signed balance, and data quality per zone.' | t
-                }}
-              </p>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 6px; flex-wrap: wrap">
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'arrivalsPerMinute'"
-              (click)="metric.set('arrivalsPerMinute'); chartType.set('')"
-            >
-              {{ 'Arrival rate' | t }}
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'departuresPerMinute'"
-              (click)="metric.set('departuresPerMinute'); chartType.set('')"
-            >
-              {{ 'Departure rate' | t }}
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'trafficBalance'"
-              (click)="metric.set('trafficBalance'); chartType.set('')"
-            >
-              {{ 'Traffic balance' | t }}
-            </button>
-          </div>
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="chart" class="sec-accent-icon" />
+          <h2>{{ 'analytics.temporalFlow' | t }}</h2>
         </div>
 
-        @if (chart().loading) {
-          <app-state [loading]="true" />
-        } @else if (chart().error) {
-          <app-state [error]="chart().error" (retry)="reload()" />
-        } @else if (chart().value; as chartVal) {
-          <app-visualization [value]="chartVal" />
-        } @else if (vm.hasBuckets && vm.activeZone) {
-          <app-chart
-            [title]="vm.activeZone.zoneName"
-            [description]="'events/min'"
-            [primaryLabel]="'Arrival rate' | t"
-            [secondaryLabel]="'Departure rate' | t"
-            [points]="vm.chartPoints"
-          />
-        } @else {
-          <app-state
-            title="No eligible observations"
-            message="No time-series movement observations in the selected period."
-          />
-        }
-      </section>
-
-      <!-- 4 Columns: Zone Comparison List -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="zones" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.zoneComparison' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.compare' | t }}</p>
-            </div>
-          </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'arrivalsPerMinute'"
+            (click)="metric.set('arrivalsPerMinute'); chartType.set('')"
+          >
+            {{ 'Arrival rate' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'departuresPerMinute'"
+            (click)="metric.set('departuresPerMinute'); chartType.set('')"
+          >
+            {{ 'Departure rate' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'trafficBalance'"
+            (click)="metric.set('trafficBalance'); chartType.set('')"
+          >
+            {{ 'Traffic balance' | t }}
+          </button>
         </div>
+      </div>
 
-        <div class="zone-compare-list">
+      @if (vm.zones.length > 1) {
+        <div class="chart-zone-selector" role="tablist" [attr.aria-label]="'analytics.selectZone' | t">
           @for (z of vm.zones; track z.scope.zoneId) {
-            <div
-              class="zone-compare-item"
+            <button
+              type="button"
+              role="tab"
+              class="chart-zone-pill"
               [class.active]="vm.activeZoneId === z.scope.zoneId"
+              [attr.aria-selected]="vm.activeZoneId === z.scope.zoneId"
               (click)="selectedZoneId.set(z.scope.zoneId)"
-              role="button"
-              tabindex="0"
-              (keydown.enter)="selectedZoneId.set(z.scope.zoneId)"
             >
-              <div class="zone-compare-info">
-                <span class="zone-compare-name">{{ z.zoneName }}</span>
-                <span class="zone-compare-metrics">
-                  <span>&darr; {{ num(z.effectiveArrivalsRate, 1) }}</span>
-                  <span>&uarr; {{ num(z.effectiveDeparturesRate, 1) }}</span>
-                  <span [class.text-danger]="(z.total.trafficBalance ?? 0) < 0">
-                    &plusmn;{{ num(z.total.trafficBalance, 0) }}
-                  </span>
-                </span>
-              </div>
-              <div class="zone-compare-badges">
-                <app-metric-quality [value]="z.total.quality" />
-              </div>
-            </div>
-          }
-          @if (!vm.zones.length) {
-            <app-state title="No eligible observations" />
+              {{ z.zoneName }}
+            </button>
           }
         </div>
-      </section>
+      }
 
-      <!-- 8 Columns: Zone Data Summary Table -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="overview" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'Flow rate' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.cameraSummary' | t }}</p>
-            </div>
+      @if (chart().loading) {
+        <app-state [loading]="true" />
+      } @else if (chart().error) {
+        <app-state [error]="chart().error" (retry)="reload()" />
+      } @else if (chart().value; as chartVal) {
+        <app-visualization [value]="chartVal" />
+      } @else if (vm.hasBuckets && vm.activeZone) {
+        <app-chart
+          kind="area"
+          palette="teal"
+          [title]="vm.activeZone.zoneName"
+          [primaryLabel]="'Arrival rate' | t"
+          [secondaryLabel]="'Departure rate' | t"
+          [points]="vm.chartPoints"
+        />
+      } @else {
+        <app-state title="No eligible observations" />
+      }
+    </section>
+
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="overview" class="sec-accent-icon" />
+          <h2>{{ 'analytics.cameraSummary' | t }}</h2>
+        </div>
+        <input
+          type="search"
+          class="table-search-input"
+          [placeholder]="'action.search' | t"
+          [ngModel]="zoneSearch()"
+          (ngModelChange)="zoneSearch.set($event)"
+        />
+      </div>
+
+      <div class="table-scroll">
+        <app-table label="Flow rates">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'Zone' | t }}</th>
+                <th scope="col">{{ 'Arrival rate' | t }}</th>
+                <th scope="col">{{ 'Departure rate' | t }}</th>
+                <th scope="col">{{ 'Traffic balance' | t }}</th>
+                <th scope="col">{{ 'Quality' | t }}</th>
+                <th scope="col">{{ 'action.details' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (z of vm.filteredZones; track z.scope.zoneId) {
+                <tr>
+                  <th scope="row">
+                    <a [routerLink]="['/zones', z.scope.zoneId]" class="table-link">{{
+                      z.zoneName
+                    }}</a>
+                  </th>
+                  <td>{{ num(z.effectiveArrivalsRate, 2) }}</td>
+                  <td>{{ num(z.effectiveDeparturesRate, 2) }}</td>
+                  <td>
+                    <span [class.text-danger]="(z.total.trafficBalance ?? 0) < 0">{{
+                      num(z.total.trafficBalance)
+                    }}</span>
+                  </td>
+                  <td><app-metric-quality [value]="z.total.quality" /></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="button quiet"
+                      style="padding: 2px 8px; font-size: 11px"
+                      (click)="openZoneDrawer(z.scope.zoneId!)"
+                    >
+                      {{ 'action.inspect' | t }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </app-table>
+      </div>
+      @if (!vm.filteredZones.length) {
+        <app-state title="No eligible observations" />
+      }
+    </section>
+  }
+
+  <!-- ================= PAGE 2: CONGESTION ================= -->
+  @if (congestionVm(); as vm) {
+    <div class="kpi-strip">
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-amber"><app-icon name="warning" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.activeEpisodes' | t }}</span>
+            <span class="kpi-sub">{{
+              vm.effectiveActive > 0 ? ('Active' | t) : ('analytics.normal' | t)
+            }}</span>
           </div>
         </div>
+        <strong class="kpi-num" [class.text-danger]="vm.effectiveActive > 0">{{
+          num(vm.effectiveActive)
+        }}</strong>
+      </div>
 
-        <div class="table-toolbar">
-          <input
-            type="search"
-            class="table-search-input"
-            [placeholder]="'action.search' | t"
-            [ngModel]="zoneSearch()"
-            (ngModelChange)="zoneSearch.set($event)"
-          />
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-teal"><app-icon name="trendUp" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.peakUtilization' | t }}</span>
+            <span class="kpi-sub">{{ 'Peak occupancy' | t }}</span>
+          </div>
+        </div>
+        <strong class="kpi-num">{{
+          vm.maxPeakUtil != null ? num(vm.maxPeakUtil, 1) + '%' : ('N/A' | t)
+        }}</strong>
+      </div>
+
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-amber"><app-icon name="clock" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.warningBreaches' | t }}</span>
+            <span class="kpi-sub">{{ 'Warning' | t }}</span>
+          </div>
+        </div>
+        <strong class="kpi-num">{{ formatSeconds(vm.totalWarnSec) }}</strong>
+      </div>
+
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon" style="color: #dc2626; background: #fee2e2">
+            <app-icon name="warning" />
+          </div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.criticalBreaches' | t }}</span>
+            <span class="kpi-sub">{{ 'Critical' | t }}</span>
+          </div>
+        </div>
+        <strong class="kpi-num" [class.text-danger]="vm.totalCritSec > 0">{{
+          formatSeconds(vm.totalCritSec)
+        }}</strong>
+      </div>
+    </div>
+
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="warning" class="sec-accent-icon" />
+          <h2>{{ 'analytics.congestionEvolution' | t }}</h2>
+        </div>
+
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'averageOccupancy'"
+            (click)="metric.set('averageOccupancy'); chartType.set('')"
+          >
+            {{ 'Occupancy trend' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'congestion'"
+            (click)="metric.set('congestion'); chartType.set('')"
+          >
+            {{ 'Congestion timeline' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'utilization'"
+            (click)="metric.set('utilization'); chartType.set('')"
+          >
+            {{ 'Utilization' | t }}
+          </button>
+        </div>
+      </div>
+
+      @if (vm.zones.length > 1) {
+        <div class="chart-zone-selector" role="tablist" [attr.aria-label]="'analytics.selectZone' | t">
+          @for (z of vm.zones; track z.scope.zoneId) {
+            <button
+              type="button"
+              role="tab"
+              class="chart-zone-pill"
+              [class.active]="vm.activeZoneId === z.scope.zoneId"
+              [attr.aria-selected]="vm.activeZoneId === z.scope.zoneId"
+              (click)="selectedZoneId.set(z.scope.zoneId)"
+            >
+              {{ z.zoneName }}
+            </button>
+          }
+        </div>
+      }
+
+      @if (chart().loading) {
+        <app-state [loading]="true" />
+      } @else if (chart().error) {
+        <app-state [error]="chart().error" (retry)="reload()" />
+      } @else if (chart().value; as chartVal) {
+        <app-visualization [value]="chartVal" />
+      } @else {
+        <app-state title="No eligible observations" />
+      }
+    </section>
+
+    @if (vm.history; as history) {
+      <section class="surface smart-card">
+        <div class="section-heading">
+          <div class="section-title-with-icon">
+            <app-icon name="clock" class="sec-accent-icon" />
+            <h2>{{ 'Congestion history' | t }}</h2>
+          </div>
         </div>
 
         <div class="table-scroll">
-          <app-table label="Flow rates">
+          <app-table label="Congestion history">
             <table>
               <thead>
                 <tr>
-                  <th scope="col">{{ 'Zone' | t }}</th>
-                  <th scope="col">{{ 'Arrival rate' | t }}</th>
-                  <th scope="col">{{ 'Departure rate' | t }}</th>
-                  <th scope="col">{{ 'Traffic balance' | t }}</th>
+                  <th scope="col">{{ 'Status' | t }}</th>
+                  <th scope="col">{{ 'Severity' | t }}</th>
+                  <th scope="col">{{ 'Resolution reason' | t }}</th>
                   <th scope="col">{{ 'Quality' | t }}</th>
                   <th scope="col">{{ 'action.details' | t }}</th>
                 </tr>
               </thead>
               <tbody>
-                @for (z of vm.filteredZones; track z.scope.zoneId) {
+                @for (e of history.episodes.items; track e.id) {
                   <tr>
-                    <th scope="row">
-                      <a [routerLink]="['/zones', z.scope.zoneId]" class="table-link">
-                        {{ z.zoneName }}
-                      </a>
-                    </th>
-                    <td>{{ num(z.effectiveArrivalsRate, 2) }}</td>
-                    <td>{{ num(z.effectiveDeparturesRate, 2) }}</td>
                     <td>
-                      <span [class.text-danger]="(z.total.trafficBalance ?? 0) < 0">
-                        {{ num(z.total.trafficBalance) }}
+                      <span class="status-pill status-pill-{{ e.status.toLowerCase() }}">
+                        {{ e.status | t }}
                       </span>
                     </td>
-                    <td><app-metric-quality [value]="z.total.quality" /></td>
+                    <td>{{ e.severity | t }}</td>
+                    <td>{{ e.resolutionReason }}</td>
+                    <td><app-metric-quality [value]="e.quality" /></td>
                     <td>
                       <button
                         type="button"
                         class="button quiet"
                         style="padding: 2px 8px; font-size: 11px"
-                        (click)="openZoneDrawer(z.scope.zoneId!)"
+                        (click)="openEpisodeDrawer(e.id)"
                       >
                         {{ 'action.inspect' | t }}
                       </button>
@@ -312,751 +458,323 @@
             </table>
           </app-table>
         </div>
-        @if (!vm.filteredZones.length) {
-          <app-state title="No eligible observations" />
-        }
+        <app-pagination
+          [page]="history.episodes.page"
+          [pages]="history.episodes.totalPages"
+          [total]="history.episodes.totalCount"
+          (changed)="page.set($event)"
+        />
       </section>
-
-      <!-- 4 Columns: Operational Context Panel -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="info" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.operationalContext' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.observationRules' | t }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'filters.timeBasis' | t }}</span>
-          <span class="drawer-prop-val"
-            >{{ vm.report.period.timeBasis }} ({{ vm.report.period.timeZoneId }})</span
-          >
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'filters.interval' | t }}</span>
-          <span class="drawer-prop-val">{{ vm.report.period.interval }}</span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'analytics.qualityCoverage' | t }}</span>
-          <span class="drawer-prop-val">{{
-            vm.activeZone ? num(vm.activeZone.total.quality.coveragePercent, 1) + '%' : 'N/A'
-          }}</span>
-        </div>
-      </section>
-    </div>
-  }
-
-  <!-- ================= PAGE 2: CONGESTION ================= -->
-  @if (congestionVm(); as vm) {
-    <!-- Congestion KPI Strip -->
-    <div class="analytics-kpi-grid">
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.activeEpisodes' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-amber"><app-icon name="warning" /></span>
-        </div>
-        <div class="analytics-kpi-value" [class.text-danger]="vm.effectiveActive > 0">
-          {{ num(vm.effectiveActive) }}
-        </div>
-        <div class="analytics-kpi-sub">
-          <span
-            class="status-pill"
-            [class.status-pill-active]="vm.effectiveActive > 0"
-            [class.status-pill-resolved]="vm.effectiveActive === 0"
-          >
-            {{ vm.effectiveActive > 0 ? ('Active' | t) : ('analytics.normal' | t) }}
-          </span>
-        </div>
-      </article>
-
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.peakUtilization' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-teal"><app-icon name="trendUp" /></span>
-        </div>
-        <div class="analytics-kpi-value">
-          {{ vm.maxPeakUtil != null ? num(vm.maxPeakUtil, 1) + '%' : 'N/A' }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Peak occupancy' | t }}</div>
-      </article>
-
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.warningBreaches' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-amber"><app-icon name="clock" /></span>
-        </div>
-        <div class="analytics-kpi-value">
-          {{ formatSeconds(vm.totalWarnSec) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Warning / critical seconds' | t }}</div>
-      </article>
-
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.criticalBreaches' | t }}</span>
-          <span
-            class="analytics-kpi-icon kpi-icon-blue"
-            style="color: #dc2626; background: #fee2e2"
-          >
-            <app-icon name="warning" />
-          </span>
-        </div>
-        <div class="analytics-kpi-value" [class.text-danger]="vm.totalCritSec > 0">
-          {{ formatSeconds(vm.totalCritSec) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Critical' | t }}</div>
-      </article>
-    </div>
-
-    <!-- 12-Column Grid -->
-    <div class="analytics-workspace-grid">
-      <!-- 8 Columns: Primary Congestion Visualization Chart -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="warning" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.congestionEvolution' | t }}</h2>
-              <p class="section-subtitle">
-                {{
-                  'Observed seconds above warning and critical thresholds and capacity utilization.'
-                    | t
-                }}
-              </p>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 6px; flex-wrap: wrap">
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'averageOccupancy'"
-              (click)="metric.set('averageOccupancy'); chartType.set('')"
-            >
-              {{ 'Occupancy trend' | t }}
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'congestion'"
-              (click)="metric.set('congestion'); chartType.set('')"
-            >
-              {{ 'Congestion timeline' | t }}
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'utilization'"
-              (click)="metric.set('utilization'); chartType.set('')"
-            >
-              {{ 'Utilization' | t }}
-            </button>
-          </div>
-        </div>
-
-        @if (chart().loading) {
-          <app-state [loading]="true" />
-        } @else if (chart().error) {
-          <app-state [error]="chart().error" (retry)="reload()" />
-        } @else if (chart().value; as chartVal) {
-          <app-visualization [value]="chartVal" />
-        } @else {
-          <app-state
-            title="No eligible observations"
-            message="No congestion time-series observations in the selected period."
-          />
-        }
-      </section>
-
-      <!-- 4 Columns: Zone Severity Breakdown -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="signal" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.zoneSeverity' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.compare' | t }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="zone-compare-list">
-          @for (z of vm.zones; track z.scope.zoneId) {
-            <div
-              class="zone-compare-item"
-              [class.active]="vm.activeZoneId === z.scope.zoneId"
-              (click)="selectedZoneId.set(z.scope.zoneId)"
-              role="button"
-              tabindex="0"
-              (keydown.enter)="selectedZoneId.set(z.scope.zoneId)"
-            >
-              <div class="zone-compare-info">
-                <span class="zone-compare-name">{{ z.zoneName }}</span>
-                <span class="zone-compare-metrics">
-                  {{ 'Average / peak utilization' | t }}: {{ num(z.averageUtilizationPercent, 1) }}%
-                  / {{ num(z.peakUtilizationPercent, 1) }}%
-                </span>
-              </div>
-              <div class="zone-compare-badges">
-                @if ((z.aboveCriticalSeconds ?? 0) > 0) {
-                  <span class="status-pill status-pill-active">{{ 'Critical' | t }}</span>
-                } @else if ((z.aboveWarningSeconds ?? 0) > 0) {
-                  <span
-                    class="status-pill"
-                    style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a"
-                  >
-                    {{ 'Warning' | t }}
-                  </span>
-                } @else if (z.quality.coveragePercent < 10) {
-                  <span class="status-pill" style="background: #f1f5f9; color: #64748b">
-                    {{ 'analytics.insufficientData' | t }}
-                  </span>
-                } @else {
-                  <span class="status-pill status-pill-resolved">{{ 'analytics.normal' | t }}</span>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      </section>
-
-      <!-- 8 Columns: Congestion History Log -->
-      @if (vm.history; as history) {
-        <section class="surface smart-card grid-col-8">
-          <div class="section-heading">
-            <div class="section-title-with-icon">
-              <app-icon name="clock" class="sec-accent-icon" />
-              <div>
-                <h2>{{ 'Congestion history' | t }}</h2>
-                <p class="section-subtitle">
-                  {{ 'Resolved and active congestion episodes across observed periods.' | t }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="table-scroll">
-            <app-table label="Congestion history">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">{{ 'Status' | t }}</th>
-                    <th scope="col">{{ 'Severity' | t }}</th>
-                    <th scope="col">{{ 'Resolution reason' | t }}</th>
-                    <th scope="col">{{ 'Quality' | t }}</th>
-                    <th scope="col">{{ 'action.details' | t }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (e of history.episodes.items; track e.id) {
-                    <tr>
-                      <td>
-                        <span class="status-pill status-pill-{{ e.status.toLowerCase() }}">
-                          {{ e.status }}
-                        </span>
-                      </td>
-                      <td>{{ e.severity }}</td>
-                      <td>{{ e.resolutionReason }}</td>
-                      <td><app-metric-quality [value]="e.quality" /></td>
-                      <td>
-                        <button
-                          type="button"
-                          class="button quiet"
-                          style="padding: 2px 8px; font-size: 11px"
-                          (click)="openEpisodeDrawer(e.id)"
-                        >
-                          {{ 'action.inspect' | t }}
-                        </button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </app-table>
-          </div>
-          <app-pagination
-            [page]="history.episodes.page"
-            [pages]="history.episodes.totalPages"
-            [total]="history.episodes.totalCount"
-            (changed)="page.set($event)"
-          />
-        </section>
-      }
-
-      <!-- 4 Columns: Context Panel -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="info" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.operationalContext' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.observationRules' | t }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'filters.timeBasis' | t }}</span>
-          <span class="drawer-prop-val"
-            >{{ vm.report.period.timeBasis }} ({{ vm.report.period.timeZoneId }})</span
-          >
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Threshold' | t }}</span>
-          <span class="drawer-prop-val"
-            >Warning &amp; Critical percentage thresholds apply per zone rule.</span
-          >
-        </div>
-      </section>
-    </div>
+    }
   }
 
   <!-- ================= PAGE 3: DWELL DISTRIBUTION ================= -->
   @if (dwellVm(); as vm) {
-    <!-- Dwell KPI Strip -->
-    <div class="analytics-kpi-grid">
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.avgDwell' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-teal"><app-icon name="clock" /></span>
+    <div class="kpi-strip">
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-teal"><app-icon name="clock" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.avgDwell' | t }}</span>
+            <span class="kpi-sub">{{ 'Estimated completed visits' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">
-          {{ formatSeconds(vm.overallAvgDwell) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Estimated completed visits' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{ formatSeconds(vm.overallAvgDwell) }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.longestActive' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-blue"><app-icon name="pulse" /></span>
-        </div>
-        <div class="analytics-kpi-value">
-          {{ formatSeconds(vm.longestActive) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Active visitor dwell durations' | t }}</div>
-      </article>
+      <div class="kpi-sep"></div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.longStayVisitors' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-amber"><app-icon name="overview" /></span>
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-blue"><app-icon name="pulse" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.longestActive' | t }}</span>
+            <span class="kpi-sub">{{ 'Active visitor dwell durations' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">
-          {{ num(vm.totalLongStay) }}
-        </div>
-        <div class="analytics-kpi-sub">&gt; {{ vm.threshold }}s {{ 'Threshold' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{ formatSeconds(vm.longestActive) }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.highestDwellZone' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-green"><app-icon name="zones" /></span>
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-amber"><app-icon name="overview" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.longStayVisitors' | t }}</span>
+            <span class="kpi-sub">&gt; {{ vm.threshold }}s</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value" style="font-size: 18px; line-height: 1.4">
-          {{ vm.highestDwellZone }}
+        <strong class="kpi-num">{{ num(vm.totalLongStay) }}</strong>
+      </div>
+
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-green"><app-icon name="zones" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.highestDwellZone' | t }}</span>
+            <span class="kpi-sub">{{ 'Zone' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-sub">{{ 'Zone' | t }}</div>
-      </article>
+        <strong class="kpi-num" style="font-size: 20px">{{ vm.highestDwellZone }}</strong>
+      </div>
     </div>
 
-    <!-- 12-Column Grid -->
-    <div class="analytics-workspace-grid">
-      <!-- 8 Columns: Dwell Duration Distribution Histogram -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="pulse" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.dwellHistogram' | t }}</h2>
-              <p class="section-subtitle">
-                {{ 'Active visitor dwell durations and estimated completed visits.' | t }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Mode Toggle: Completed vs Active -->
-          <div style="display: flex; gap: 6px">
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="dwellBinMode() === 'completed'"
-              (click)="dwellBinMode.set('completed')"
-            >
-              {{ 'analytics.completedVisits' | t }}
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="dwellBinMode() === 'active'"
-              (click)="dwellBinMode.set('active')"
-            >
-              {{ 'analytics.activeVisits' | t }}
-            </button>
-          </div>
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="pulse" class="sec-accent-icon" />
+          <h2>{{ 'analytics.dwellHistogram' | t }}</h2>
         </div>
 
-        @if (vm.zones.length > 1) {
-          <div
-            class="chart-zone-selector"
-            role="tablist"
-            [attr.aria-label]="'analytics.selectZone' | t"
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="dwellBinMode() === 'completed'"
+            (click)="dwellBinMode.set('completed')"
           >
-            <span class="chart-zone-selector-label">
-              <app-icon name="zones" />{{ 'Zone' | t }}:
-            </span>
-            @for (z of vm.zones; track z.scope.zoneId) {
-              <button
-                type="button"
-                role="tab"
-                class="chart-zone-pill"
-                [class.active]="vm.activeZoneId === z.scope.zoneId"
-                [attr.aria-selected]="vm.activeZoneId === z.scope.zoneId"
-                (click)="selectedZoneId.set(z.scope.zoneId)"
-              >
-                {{ z.zoneName }}
-              </button>
-            }
-          </div>
-        }
-
-        @if (chart().loading) {
-          <app-state [loading]="true" />
-        } @else if (chart().error) {
-          <app-state [error]="chart().error" (retry)="reload()" />
-        } @else if (chart().value; as chartVal) {
-          <app-visualization [value]="chartVal" />
-        } @else if (vm.hasBins && vm.activeZone) {
-          <app-chart
-            kind="histogram"
-            [title]="vm.activeZone.zoneName"
-            [description]="
-              dwellBinMode() === 'completed'
-                ? ('analytics.completedVisits' | t)
-                : ('analytics.activeVisits' | t)
-            "
-            [primaryLabel]="'analytics.visitsCount' | t"
-            [points]="vm.histogramPoints"
-          />
-        } @else {
-          <app-state
-            title="No eligible observations"
-            message="No visitor duration bins observed for this zone."
-          />
-        }
-      </section>
-
-      <!-- 4 Columns: Zone Dwell Comparison -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="zones" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.zoneComparison' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.compare' | t }}</p>
-            </div>
-          </div>
+            {{ 'analytics.completedVisits' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="dwellBinMode() === 'active'"
+            (click)="dwellBinMode.set('active')"
+          >
+            {{ 'analytics.activeVisits' | t }}
+          </button>
         </div>
+      </div>
 
-        <div class="zone-compare-list">
+      @if (vm.zones.length > 1) {
+        <div class="chart-zone-selector" role="tablist" [attr.aria-label]="'analytics.selectZone' | t">
           @for (z of vm.zones; track z.scope.zoneId) {
-            <div
-              class="zone-compare-item"
+            <button
+              type="button"
+              role="tab"
+              class="chart-zone-pill"
               [class.active]="vm.activeZoneId === z.scope.zoneId"
+              [attr.aria-selected]="vm.activeZoneId === z.scope.zoneId"
               (click)="selectedZoneId.set(z.scope.zoneId)"
-              role="button"
-              tabindex="0"
-              (keydown.enter)="selectedZoneId.set(z.scope.zoneId)"
             >
-              <div class="zone-compare-info">
-                <span class="zone-compare-name">{{ z.zoneName }}</span>
-                <span class="zone-compare-metrics">
-                  <span
-                    >{{ 'Active / long stays' | t }}: {{ num(z.activeCount) }} /
-                    {{ num(z.longStayActiveCount) }}</span
-                  >
-                  <span
-                    >{{ 'Estimated completed visits' | t }}:
-                    {{ num(z.estimatedCompletedCount) }}</span
-                  >
-                </span>
-              </div>
-              <div class="zone-compare-badges">
-                <app-metric-quality [value]="z.completedQuality" />
-              </div>
-            </div>
+              {{ z.zoneName }}
+            </button>
           }
         </div>
-      </section>
+      }
 
-      <!-- 8 Columns: Long-Stay Analysis & Summary Table -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="overview" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.longStayAnalysis' | t }}</h2>
-              <p class="section-subtitle">
-                {{ 'Active visitor dwell durations and estimated completed visits.' | t }}
-              </p>
-            </div>
-          </div>
+      @if (chart().loading) {
+        <app-state [loading]="true" />
+      } @else if (chart().error) {
+        <app-state [error]="chart().error" (retry)="reload()" />
+      } @else if (chart().value; as chartVal) {
+        <app-visualization [value]="chartVal" />
+      } @else if (vm.hasBins && vm.activeZone) {
+        <app-chart
+          kind="histogram"
+          palette="indigo"
+          [title]="vm.activeZone.zoneName"
+          [primaryLabel]="'analytics.visitsCount' | t"
+          [points]="vm.histogramPoints"
+        />
+      } @else {
+        <app-state title="No eligible observations" />
+      }
+    </section>
 
-          <div class="filter-toggle-box">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                [checked]="longStay()"
-                (change)="longStay.set($any($event.target).checked)"
-              />
-              <span>{{ 'Long-stay report' | t }}</span>
-            </label>
-            <span class="threshold-chip">
-              {{ 'Long-stay threshold' | t }}: {{ vm.threshold }}s
-            </span>
-          </div>
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="overview" class="sec-accent-icon" />
+          <h2>{{ 'analytics.longStayAnalysis' | t }}</h2>
         </div>
 
-        <div class="table-scroll">
-          <app-table label="Dwell distribution">
-            <table>
-              <thead>
+        <div class="filter-toggle-box">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [checked]="longStay()"
+              (change)="longStay.set($any($event.target).checked)"
+            />
+            <span>{{ 'Long-stay report' | t }}</span>
+          </label>
+          <span class="threshold-chip">{{ 'Long-stay threshold' | t }}: {{ vm.threshold }}s</span>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <app-table label="Dwell distribution">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'Zone' | t }}</th>
+                <th scope="col">{{ 'Active / long stays' | t }}</th>
+                <th scope="col">{{ 'Estimated completed visits' | t }}</th>
+                <th scope="col">{{ 'Uncertain visits' | t }}</th>
+                <th scope="col">{{ 'Active / completed quality' | t }}</th>
+                <th scope="col">{{ 'action.details' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (z of vm.zones; track z.scope.zoneId) {
                 <tr>
-                  <th scope="col">{{ 'Zone' | t }}</th>
-                  <th scope="col">{{ 'Active / long stays' | t }}</th>
-                  <th scope="col">{{ 'Estimated completed visits' | t }}</th>
-                  <th scope="col">{{ 'Uncertain visits' | t }}</th>
-                  <th scope="col">{{ 'Active / completed quality' | t }}</th>
-                  <th scope="col">{{ 'action.details' | t }}</th>
+                  <th scope="row">{{ z.zoneName }}</th>
+                  <td>{{ num(z.activeCount) }} / {{ num(z.longStayActiveCount) }}</td>
+                  <td>{{ num(z.estimatedCompletedCount) }}</td>
+                  <td>{{ num(z.uncertainCount) }}</td>
+                  <td>
+                    <div class="quality-pair">
+                      <app-metric-quality [value]="z.activeQuality" />
+                      <app-metric-quality [value]="z.completedQuality" />
+                    </div>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="button quiet"
+                      style="padding: 2px 8px; font-size: 11px"
+                      (click)="openZoneDrawer(z.scope.zoneId!)"
+                    >
+                      {{ 'action.inspect' | t }}
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                @for (z of vm.zones; track z.scope.zoneId) {
-                  <tr>
-                    <th scope="row">{{ z.zoneName }}</th>
-                    <td>{{ num(z.activeCount) }} / {{ num(z.longStayActiveCount) }}</td>
-                    <td>{{ num(z.estimatedCompletedCount) }}</td>
-                    <td>{{ num(z.uncertainCount) }}</td>
-                    <td>
-                      <div class="quality-pair">
-                        <app-metric-quality [value]="z.activeQuality" />
-                        <app-metric-quality [value]="z.completedQuality" />
-                      </div>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        class="button quiet"
-                        style="padding: 2px 8px; font-size: 11px"
-                        (click)="openZoneDrawer(z.scope.zoneId!)"
-                      >
-                        {{ 'action.inspect' | t }}
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </app-table>
-        </div>
-        @if (!vm.zones.length) {
-          <app-state title="No eligible observations" />
-        }
-      </section>
-
-      <!-- 4 Columns: Context Panel -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="info" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.operationalContext' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.observationRules' | t }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Evaluated at' | t }}</span>
-          <span class="drawer-prop-val">{{
-            format.timestamp(vm.report.evaluatedAtUtc, vm.report.period.timeZoneId)
-          }}</span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Long-stay threshold' | t }}</span>
-          <span class="drawer-prop-val">{{ vm.threshold }}s</span>
-        </div>
-      </section>
-    </div>
+              }
+            </tbody>
+          </table>
+        </app-table>
+      </div>
+      @if (!vm.zones.length) {
+        <app-state title="No eligible observations" />
+      }
+    </section>
   }
 
   <!-- ================= PAGE 4: DATA QUALITY ================= -->
   @if (qualityVm(); as vm) {
-    <!-- Quality KPI Strip -->
-    <div class="analytics-kpi-grid">
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.reportingCameras' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-teal"><app-icon name="camera" /></span>
+    <div class="kpi-strip">
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-teal"><app-icon name="camera" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.reportingCameras' | t }}</span>
+            <span class="kpi-sub">{{ 'filters.fresh' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">{{ vm.freshCount }} / {{ vm.totalCount }}</div>
-        <div class="analytics-kpi-sub">
-          <span class="status-pill status-pill-resolved">{{ 'filters.fresh' | t }}</span>
-        </div>
-      </article>
+        <strong class="kpi-num" dir="ltr">{{ vm.freshCount }} / {{ vm.totalCount }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.avgFps' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-green"><app-icon name="signal" /></span>
-        </div>
-        <div class="analytics-kpi-value">
-          {{ vm.avgFps != null ? num(vm.avgFps, 1) : 'N/A' }}
-        </div>
-        <div class="analytics-kpi-sub">FPS (Processing)</div>
-      </article>
+      <div class="kpi-sep"></div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.totalMissingSeq' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-amber"><app-icon name="warning" /></span>
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-green"><app-icon name="signal" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.avgFps' | t }}</span>
+            <span class="kpi-sub">{{ 'FPS (Processing)' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value" [class.text-danger]="vm.totalMissing > 0">
-          {{ num(vm.totalMissing) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Missing sequences' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{
+          vm.avgFps != null ? num(vm.avgFps, 1) : ('N/A' | t)
+        }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.avgLatency' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-blue"><app-icon name="clock" /></span>
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-amber"><app-icon name="warning" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.totalMissingSeq' | t }}</span>
+            <span class="kpi-sub">{{ 'Missing sequences' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">
-          {{ vm.avgLatency != null ? num(vm.avgLatency, 1) + 'ms' : 'N/A' }}
+        <strong class="kpi-num" [class.text-danger]="vm.totalMissing > 0">{{
+          num(vm.totalMissing)
+        }}</strong>
+      </div>
+
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-blue"><app-icon name="clock" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.avgLatency' | t }}</span>
+            <span class="kpi-sub">{{ 'Source to receipt' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-sub">{{ 'Source to receipt' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{
+          vm.avgLatency != null ? num(vm.avgLatency, 1) + 'ms' : ('N/A' | t)
+        }}</strong>
+      </div>
     </div>
 
-    <!-- 12-Column Grid -->
-    <div class="analytics-workspace-grid">
-      <!-- 8 Columns: Primary FPS & Latency Timeline Chart -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="signal" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'dataQualityTimeline.label' | t }}</h2>
-              <p class="section-subtitle">
-                {{
-                  'Processing frame rates, sequence reception, and latency tracking per camera.' | t
-                }}
-              </p>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 6px; flex-wrap: wrap">
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'fps'"
-              (click)="metric.set('fps'); chartType.set('')"
-            >
-              FPS
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'missingSequences'"
-              (click)="metric.set('missingSequences'); chartType.set('')"
-            >
-              {{ 'Missing sequences' | t }}
-            </button>
-            <button
-              type="button"
-              class="chart-zone-pill"
-              [class.active]="metric() === 'dataQualityTimeline'"
-              (click)="metric.set('dataQualityTimeline'); chartType.set('')"
-            >
-              {{ 'Data quality' | t }}
-            </button>
-          </div>
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="signal" class="sec-accent-icon" />
+          <h2>{{ 'analytics.qualityTimeline' | t }}</h2>
         </div>
 
-        @if (chart().loading) {
-          <app-state [loading]="true" />
-        } @else if (chart().error) {
-          <app-state [error]="chart().error" (retry)="reload()" />
-        } @else if (chart().value; as chartVal) {
-          <app-visualization [value]="chartVal" />
-        } @else {
-          <app-state
-            title="No eligible observations"
-            message="No camera quality observations in the selected period."
-          />
-        }
-      </section>
-
-      <!-- 4 Columns: Camera Health Quick List -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="camera" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'Cameras' | t }}</h2>
-              <p class="section-subtitle">{{ 'analytics.compare' | t }}</p>
-            </div>
-          </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'fps'"
+            (click)="metric.set('fps'); chartType.set('')"
+          >
+            {{ 'fps' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'missingSequences'"
+            (click)="metric.set('missingSequences'); chartType.set('')"
+          >
+            {{ 'Missing sequences' | t }}
+          </button>
+          <button
+            type="button"
+            class="chart-zone-pill"
+            [class.active]="metric() === 'quality'"
+            (click)="metric.set('quality'); chartType.set('')"
+          >
+            {{ 'Data quality' | t }}
+          </button>
         </div>
+      </div>
 
-        <div class="zone-compare-list">
-          @for (c of vm.cameraRows; track c.camera.scope.cameraId) {
-            <div
-              class="zone-compare-item"
-              (click)="openCameraDrawer(c.camera.scope.cameraId!)"
-              role="button"
-              tabindex="0"
-              (keydown.enter)="openCameraDrawer(c.camera.scope.cameraId!)"
-            >
-              <div class="zone-compare-info">
-                <span class="zone-compare-name">{{ c.name }}</span>
-                <span class="zone-compare-metrics">
-                  FPS: <strong>{{ num(c.latestFps, 1) }}</strong> · Latency:
-                  {{ num(c.avgLatency, 0) }}ms
-                </span>
-              </div>
-              <div class="zone-compare-badges">
-                <span class="freshness-chip">{{ c.freshness }}</span>
-              </div>
-            </div>
+      @if (chart().loading) {
+        <app-state [loading]="true" />
+      } @else if (chart().error) {
+        <app-state [error]="chart().error" (retry)="reload()" />
+      } @else if (chart().value; as chartVal) {
+        <app-visualization [value]="chartVal" />
+      } @else {
+        <app-state title="No eligible observations" />
+      }
+    </section>
+
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="camera" class="sec-accent-icon" />
+          <h2>{{ 'analytics.cameraQualityLog' | t }}</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+          @if (!vm.rejections.length) {
+            <span class="status-pill status-pill-resolved">
+              {{ 'No pipeline rejections observed in this window.' | t }}
+            </span>
+          } @else {
+            <span class="status-pill status-pill-active">
+              {{ 'analytics.pipelineRejections' | t }}: {{ vm.rejections.length }}
+            </span>
           }
-          @if (!vm.cameraRows.length) {
-            <app-state title="No eligible observations" />
-          }
-        </div>
-      </section>
-
-      <!-- 8 Columns: Camera Quality Master Table -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="signal" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.cameraQualityMaster' | t }}</h2>
-              <p class="section-subtitle">
-                {{
-                  'Processing frame rates, sequence reception, and latency tracking per camera.' | t
-                }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="table-toolbar">
           <input
             type="search"
             class="table-search-input"
@@ -1065,383 +783,226 @@
             (ngModelChange)="cameraSearch.set($event)"
           />
         </div>
+      </div>
 
-        <div class="table-scroll">
-          <app-table label="Camera quality master table">
-            <table>
-              <thead>
+      <div class="table-scroll">
+        <app-table label="Camera quality">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'analytics.cameraName' | t }}</th>
+                <th scope="col">{{ 'Status' | t }}</th>
+                <th scope="col">{{ 'Latest FPS' | t }}</th>
+                <th scope="col">{{ 'analytics.avgFps' | t }}</th>
+                <th scope="col">{{ 'Missing sequences' | t }}</th>
+                <th scope="col">{{ 'Source to receipt' | t }}</th>
+                <th scope="col">{{ 'action.details' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of vm.filteredCameraRows; track c.camera.scope.cameraId) {
                 <tr>
-                  <th scope="col">{{ 'analytics.cameraName' | t }}</th>
-                  <th scope="col">{{ 'Status' | t }}</th>
-                  <th scope="col">{{ 'Latest FPS' | t }}</th>
-                  <th scope="col">{{ 'analytics.avgFps' | t }}</th>
-                  <th scope="col">{{ 'Missing sequences' | t }}</th>
-                  <th scope="col">{{ 'Source to receipt' | t }}</th>
-                  <th scope="col">{{ 'action.details' | t }}</th>
+                  <th scope="row">
+                    <span style="font-weight: 700; color: var(--ink)">{{ c.name }}</span>
+                  </th>
+                  <td>
+                    <span class="freshness-chip">{{ c.freshness | t }}</span>
+                  </td>
+                  <td>
+                    <strong>{{ num(c.latestFps, 1) }}</strong>
+                  </td>
+                  <td>{{ num(c.avgFps, 1) }}</td>
+                  <td>
+                    <span [class.text-danger]="c.totalMissing > 0">{{ num(c.totalMissing) }}</span>
+                  </td>
+                  <td>{{ c.avgLatency != null ? num(c.avgLatency, 1) + 'ms' : ('N/A' | t) }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="button quiet"
+                      style="padding: 2px 8px; font-size: 11px"
+                      (click)="openCameraDrawer(c.camera.scope.cameraId!)"
+                    >
+                      {{ 'action.inspect' | t }}
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                @for (c of vm.filteredCameraRows; track c.camera.scope.cameraId) {
-                  <tr>
-                    <th scope="row">
-                      <span style="font-weight: 700; color: var(--ink)">{{ c.name }}</span>
-                    </th>
-                    <td>
-                      <span class="freshness-chip">{{ c.freshness }}</span>
-                    </td>
-                    <td>
-                      <strong>{{ num(c.latestFps, 1) }}</strong>
-                    </td>
-                    <td>{{ num(c.avgFps, 1) }}</td>
-                    <td>
-                      <span [class.text-danger]="c.totalMissing > 0">{{
-                        num(c.totalMissing)
-                      }}</span>
-                    </td>
-                    <td>{{ num(c.avgLatency, 1) }}ms</td>
-                    <td>
-                      <button
-                        type="button"
-                        class="button quiet"
-                        style="padding: 2px 8px; font-size: 11px"
-                        (click)="openCameraDrawer(c.camera.scope.cameraId!)"
-                      >
-                        {{ 'action.inspect' | t }}
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </app-table>
-        </div>
-        @if (!vm.filteredCameraRows.length) {
-          <app-state title="No eligible observations" />
-        }
-      </section>
-
-      <!-- 4 Columns: Pipeline Rejections & Quality Parameters -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="warning" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.rejectionsSummary' | t }}</h2>
-              <p class="section-subtitle">{{ 'Quality' | t }}</p>
-            </div>
-          </div>
-        </div>
-
-        @for (r of vm.rejections; track r.reason) {
-          <div class="notice warning" style="margin-bottom: 8px">
-            <app-icon name="warning" />
-            <p>
-              {{ r.reason }}: <strong>{{ num(r.count) }}</strong>
-            </p>
-          </div>
-        }
-        @if (!vm.rejections.length) {
-          <div
-            class="notice"
-            style="background: #edf7f6; color: #087f7b; border: 1px solid rgba(8, 127, 123, 0.2)"
-          >
-            <app-icon name="check" />
-            <p>{{ 'No pipeline rejections observed in this window.' | t }}</p>
-          </div>
-        }
-
-        <div class="drawer-prop" style="margin-top: 12px">
-          <span class="drawer-prop-label">{{ 'filters.timeBasis' | t }}</span>
-          <span class="drawer-prop-val"
-            >{{ vm.report.period.timeBasis }} ({{ vm.report.period.timeZoneId }})</span
-          >
-        </div>
-      </section>
-    </div>
+              }
+            </tbody>
+          </table>
+        </app-table>
+      </div>
+      @if (!vm.filteredCameraRows.length) {
+        <app-state title="No eligible observations" />
+      }
+    </section>
   }
 
   <!-- ================= PAGE 5: INSIGHTS ================= -->
   @if (insightsVm(); as vm) {
-    <!-- Insights KPI Strip -->
-    <div class="analytics-kpi-grid">
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.totalInsights' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-blue"><app-icon name="overview" /></span>
+    <div class="kpi-strip">
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-blue"><app-icon name="overview" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.totalInsights' | t }}</span>
+            <span class="kpi-sub">{{ 'Qualified observations' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">
-          {{ num(vm.totalCount) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Qualified observations' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{ num(vm.totalCount) }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.criticalFindings' | t }}</span>
-          <span class="analytics-kpi-icon" style="background: #fee2e2; color: #dc2626">
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon" style="background: #fee2e2; color: #dc2626">
             <app-icon name="warning" />
-          </span>
+          </div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.criticalFindings' | t }}</span>
+            <span class="kpi-sub">{{ 'Critical' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value" [class.text-danger]="vm.criticalCount > 0">
-          {{ num(vm.criticalCount) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Critical' | t }}</div>
-      </article>
+        <strong class="kpi-num" [class.text-danger]="vm.criticalCount > 0">{{
+          num(vm.criticalCount)
+        }}</strong>
+      </div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.warningFindings' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-amber"><app-icon name="warning" /></span>
-        </div>
-        <div class="analytics-kpi-value">
-          {{ num(vm.warningCount) }}
-        </div>
-        <div class="analytics-kpi-sub">{{ 'Warning' | t }}</div>
-      </article>
+      <div class="kpi-sep"></div>
 
-      <article class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">{{ 'analytics.qualityCoverage' | t }}</span>
-          <span class="analytics-kpi-icon kpi-icon-green"><app-icon name="signal" /></span>
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-amber"><app-icon name="warning" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.warningFindings' | t }}</span>
+            <span class="kpi-sub">{{ 'Warning' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-value">
-          {{ vm.coveragePercent != null ? num(vm.coveragePercent, 1) + '%' : 'N/A' }}
+        <strong class="kpi-num">{{ num(vm.warningCount) }}</strong>
+      </div>
+
+      <div class="kpi-sep"></div>
+
+      <div class="kpi-col">
+        <div class="kpi-head">
+          <div class="kpi-icon kpi-icon-green"><app-icon name="signal" /></div>
+          <div class="kpi-title-block">
+            <span class="kpi-label">{{ 'analytics.qualityCoverage' | t }}</span>
+            <span class="kpi-sub">{{ 'Quality' | t }}</span>
+          </div>
         </div>
-        <div class="analytics-kpi-sub">{{ 'Quality' | t }}</div>
-      </article>
+        <strong class="kpi-num">{{
+          vm.coveragePercent != null ? num(vm.coveragePercent, 1) + '%' : ('N/A' | t)
+        }}</strong>
+      </div>
     </div>
 
-    <!-- 12-Column Grid -->
-    <div class="analytics-workspace-grid">
-      <!-- 8 Columns: Main Insights Area -->
-      <section class="surface smart-card grid-col-8">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="overview" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'Insights' | t }}</h2>
-              <p class="section-subtitle">
-                {{ 'analytics.noInsightsDesc' | t }}
-              </p>
-            </div>
-          </div>
-
-          @if (vm.hasItems) {
-            <div style="display: flex; gap: 6px">
-              <button
-                type="button"
-                class="chart-zone-pill"
-                [class.active]="insightsFilter() === 'all'"
-                (click)="insightsFilter.set('all')"
-              >
-                {{ 'action.all' | t }}
-              </button>
-              <button
-                type="button"
-                class="chart-zone-pill"
-                [class.active]="insightsFilter() === 'critical'"
-                (click)="insightsFilter.set('critical')"
-              >
-                {{ 'Critical' | t }}
-              </button>
-              <button
-                type="button"
-                class="chart-zone-pill"
-                [class.active]="insightsFilter() === 'warning'"
-                (click)="insightsFilter.set('warning')"
-              >
-                {{ 'Warning' | t }}
-              </button>
-            </div>
-          }
+    <section class="surface smart-card">
+      <div class="section-heading">
+        <div class="section-title-with-icon">
+          <app-icon name="overview" class="sec-accent-icon" />
+          <h2>{{ 'Insights' | t }}</h2>
         </div>
 
         @if (vm.hasItems) {
-          <div style="display: flex; flex-direction: column; gap: 12px">
-            @for (card of vm.filteredItems; track card.insightKey) {
-              <article
-                class="surface insight-item-card"
-                style="
-                  border: 1px solid var(--line-subtle);
-                  border-radius: var(--radius-sm);
-                  cursor: pointer;
-                "
-                [class.active]="vm.selectedInsight.insightKey === card.insightKey"
-                (click)="selectedInsightKey.set(card.insightKey)"
-              >
-                <div class="insight-header">
-                  <div class="insight-badge severity-{{ card.severity.toLowerCase() }}">
-                    <app-icon name="overview" />
-                  </div>
-                  <div style="flex: 1; min-width: 0">
-                    <div
-                      style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 8px;
-                      "
-                    >
-                      <h3>{{ card.title }}</h3>
-                      <span class="insight-meta"
-                        >{{ card.severity }} · {{ num(card.value, 1) }} {{ card.unit }}</span
-                      >
-                    </div>
-                    <p class="insight-desc" style="margin-top: 4px">{{ card.description }}</p>
-                  </div>
-                </div>
-                <div class="insight-footer">
-                  <app-metric-quality [value]="card.quality" />
-                  <div style="display: flex; gap: 8px">
-                    <button
-                      type="button"
-                      class="button quiet"
-                      style="font-size: 11px"
-                      (click)="$event.stopPropagation(); openInsightDrawer(card.insightKey)"
-                    >
-                      {{ 'action.details' | t }}
-                    </button>
-                    <a
-                      [routerLink]="['/zones', card.scope.zoneId]"
-                      [queryParams]="filter()"
-                      class="button quiet"
-                      style="font-size: 11px"
-                      (click)="$event.stopPropagation()"
-                    >
-                      {{ 'Inspect zone' | t }} &rarr;
-                    </a>
-                  </div>
-                </div>
-              </article>
-            }
+          <div style="display: flex; gap: 6px">
+            <button
+              type="button"
+              class="chart-zone-pill"
+              [class.active]="insightsFilter() === 'all'"
+              (click)="insightsFilter.set('all')"
+            >
+              {{ 'action.all' | t }}
+            </button>
+            <button
+              type="button"
+              class="chart-zone-pill"
+              [class.active]="insightsFilter() === 'critical'"
+              (click)="insightsFilter.set('critical')"
+            >
+              {{ 'Critical' | t }}
+            </button>
+            <button
+              type="button"
+              class="chart-zone-pill"
+              [class.active]="insightsFilter() === 'warning'"
+              (click)="insightsFilter.set('warning')"
+            >
+              {{ 'Warning' | t }}
+            </button>
           </div>
-        } @else {
-          <app-state
-            title="No qualified insights"
-            message="Insights require sufficient measured coverage. No observations are invented."
-          />
         }
-      </section>
-
-      <!-- 4 Columns: Context & Selected Finding Drilldown -->
-      <section class="surface smart-card grid-col-4">
-        <div class="section-heading">
-          <div class="section-title-with-icon">
-            <app-icon name="info" class="sec-accent-icon" />
-            <div>
-              <h2>{{ 'analytics.findingDetails' | t }}</h2>
-              <p class="section-subtitle">{{ 'Evidence / threshold' | t }}</p>
-            </div>
-          </div>
-        </div>
-
-        @if (vm.selectedInsight; as sel) {
-          <div class="drawer-detail-grid" style="grid-template-columns: 1fr">
-            <div class="drawer-prop">
-              <span class="drawer-prop-label">{{ 'Metric' | t }}</span>
-              <span class="drawer-prop-val"
-                >{{ sel.metricKey }}: {{ num(sel.value, 1) }} {{ sel.unit }}</span
-              >
-            </div>
-            <div class="drawer-prop">
-              <span class="drawer-prop-label">{{ 'Severity' | t }}</span>
-              <span class="drawer-prop-val">
-                <span class="status-pill status-pill-{{ sel.severity.toLowerCase() }}">{{
-                  sel.severity
-                }}</span>
-              </span>
-            </div>
-            <div class="drawer-prop">
-              <span class="drawer-prop-label">{{ 'Zone' | t }}</span>
-              <span class="drawer-prop-val">
-                <a [routerLink]="['/zones', sel.scope.zoneId]" class="table-link">
-                  {{ 'Inspect zone' | t }} &rarr;
-                </a>
-              </span>
-            </div>
-            <div class="drawer-prop">
-              <span class="drawer-prop-label">{{ 'Quality' | t }}</span>
-              <span class="drawer-prop-val">
-                <app-metric-quality [value]="sel.quality" />
-              </span>
-            </div>
-          </div>
-        } @else {
-          <p class="field-help" style="margin: 0">
-            {{ 'analytics.observationRules' | t }}
-          </p>
-        }
-      </section>
-    </div>
-  }
-
-  <!-- ================= ADVANCED VISUALIZATION EXPLORER ================= -->
-  <section class="surface smart-card visualization-card">
-    <div
-      class="section-heading"
-      style="cursor: pointer; user-select: none"
-      (click)="showExplorer.set(!showExplorer())"
-    >
-      <div class="section-title-with-icon">
-        <app-icon name="chart" class="sec-accent-icon" />
-        <div>
-          <h2>{{ 'analytics.visExplorer' | t }}</h2>
-          <p class="section-subtitle">
-            {{ 'Dynamic polymorphic chart representation with quality indicators.' | t }}
-          </p>
-        </div>
       </div>
-      <button type="button" class="button quiet" style="font-size: 11.5px">
-        <app-icon [name]="showExplorer() ? 'down' : 'right'" />
-        <span>{{ showExplorer() ? ('action.compactView' | t) : ('action.details' | t) }}</span>
-      </button>
-    </div>
 
-    @if (showExplorer()) {
-      <form class="analytics-toolbar" (submit)="$event.preventDefault()">
-        <div class="analytics-metric-field">
-          <label for="smart-metric">
-            <app-icon name="chart" />
-            <span>{{ 'Visualization metric' | t }}</span>
-          </label>
-          <select
-            id="smart-metric"
-            [ngModel]="metric()"
-            (ngModelChange)="metric.set($event); chartType.set('')"
-            name="metric"
-          >
-            @for (m of metrics; track m) {
-              <option [value]="m">{{ metricLabel(m) }}</option>
-            }
-          </select>
+      @if (vm.hasItems) {
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          @for (card of vm.filteredItems; track card.insightKey) {
+            <article
+              class="surface insight-item-card"
+              style="
+                border: 1px solid var(--line-subtle);
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+              "
+              [class.active]="vm.selectedInsight.insightKey === card.insightKey"
+              (click)="openInsightDrawer(card.insightKey)"
+            >
+              <div class="insight-header">
+                <div class="insight-badge severity-{{ card.severity.toLowerCase() }}">
+                  <app-icon name="overview" />
+                </div>
+                <div style="flex: 1; min-width: 0">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      gap: 8px;
+                    "
+                  >
+                    <h3>{{ card.title }}</h3>
+                    <span class="insight-meta"
+                      >{{ card.severity | t }} · {{ num(card.value, 1) }} {{ card.unit }}</span
+                    >
+                  </div>
+                  <p class="insight-desc" style="margin-top: 4px">{{ card.description }}</p>
+                </div>
+              </div>
+              <div class="insight-footer">
+                <app-metric-quality [value]="card.quality" />
+                <div style="display: flex; gap: 8px">
+                  <button
+                    type="button"
+                    class="button quiet"
+                    style="font-size: 11px"
+                    (click)="$event.stopPropagation(); openInsightDrawer(card.insightKey)"
+                  >
+                    {{ 'action.details' | t }}
+                  </button>
+                  <a
+                    [routerLink]="['/zones', card.scope.zoneId]"
+                    [queryParams]="filter()"
+                    class="button quiet"
+                    style="font-size: 11px"
+                    (click)="$event.stopPropagation()"
+                  >
+                    {{ 'Inspect zone' | t }} &rarr;
+                  </a>
+                </div>
+              </div>
+            </article>
+          }
         </div>
-        <div class="analytics-metric-field">
-          <label for="smart-chart-type">
-            <app-icon name="filters" />
-            <span>{{ 'Chart type' | t }}</span>
-          </label>
-          <select
-            id="smart-chart-type"
-            name="chartType"
-            [ngModel]="chartType()"
-            (ngModelChange)="chartType.set($event)"
-          >
-            <option value="">{{ 'Default' | t }}</option>
-            @for (type of chartTypes(); track type) {
-              <option [value]="type">{{ chartTypeLabel(type) }}</option>
-            }
-          </select>
-        </div>
-      </form>
-
-      @if (chart().loading || chart().error) {
-        <app-state [loading]="chart().loading" [error]="chart().error" (retry)="reload()" />
+      } @else {
+        <app-state
+          icon="overview"
+          [title]="'analytics.noInsights' | t"
+          [message]="'analytics.noInsightsDesc' | t"
+        />
       }
-      @if (chart().value; as chartVal) {
-        <app-visualization [value]="chartVal" />
-      }
-    }
-  </section>
+    </section>
+  }
 </div>
 
 <!-- ================= CONTEXTUAL DETAIL DRAWER ================= -->
@@ -1449,9 +1010,9 @@
   [open]="drawerOpen()"
   [title]="
     drawerType() === 'zone'
-      ? (selectedZoneForDrawer()?.zoneName ?? 'Zone')
+      ? (selectedZoneForDrawer()?.zoneName ?? ('Zone' | t))
       : drawerType() === 'camera'
-        ? (qualityVm()?.selectedCamera?.cameraName ?? 'Camera')
+        ? (qualityVm()?.selectedCamera?.cameraName ?? ('Camera' | t))
         : drawerType() === 'episode'
           ? ('Congestion episode' | t)
           : ('Insights' | t)
@@ -1466,94 +1027,91 @@
           ? 'warning'
           : 'overview'
   "
+  [tone]="
+    drawerType() === 'episode'
+      ? 'warning'
+      : drawerType() === 'insight'
+        ? insightsVm()?.selectedInsight?.severity?.toLowerCase() === 'critical'
+          ? 'danger'
+          : insightsVm()?.selectedInsight?.severity?.toLowerCase() === 'warning'
+            ? 'warning'
+            : 'info'
+        : 'accent'
+  "
+  [hasFooter]="true"
   (closed)="closeDrawer()"
 >
-  <!-- Zone Detail Content -->
   @if (drawerType() === 'zone' && selectedZoneForDrawer(); as z) {
-    <div class="drawer-detail-grid">
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Zone' | t }}</span>
-        <span class="drawer-prop-val">{{ z.zoneName }}</span>
+    <div class="drawer-hero">
+      <div class="drawer-hero-top">
+        <h3 class="drawer-hero-title">{{ z.zoneName }}</h3>
       </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">Scope ID</span>
-        <span class="drawer-prop-val" style="font-size: 11px; word-break: break-all">
-          {{ z.scope.zoneId }}
-        </span>
-      </div>
+      <span class="drawer-hero-id" dir="ltr">{{ z.scope.zoneId }}</span>
     </div>
 
     @if ('total' in z) {
-      <div class="drawer-detail-grid">
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Arrival rate' | t }}</span>
-          <span class="drawer-prop-val">{{ num(z.total.eventsPerMinute?.arrivals, 2) }}</span>
+      <section class="drawer-section">
+        <h4 class="drawer-section-title">{{ 'Metrics' | t }}</h4>
+        <div class="drawer-detail-grid">
+          <div class="drawer-prop">
+            <span class="drawer-prop-label">{{ 'Arrival rate' | t }}</span>
+            <span class="drawer-prop-val">{{ num(z.total.eventsPerMinute?.arrivals, 2) }}</span>
+          </div>
+          <div class="drawer-prop">
+            <span class="drawer-prop-label">{{ 'Departure rate' | t }}</span>
+            <span class="drawer-prop-val">{{ num(z.total.eventsPerMinute?.departures, 2) }}</span>
+          </div>
+          <div class="drawer-prop">
+            <span class="drawer-prop-label">{{ 'Traffic balance' | t }}</span>
+            <span class="drawer-prop-val">{{ num(z.total.trafficBalance, 0) }}</span>
+          </div>
+          <div class="drawer-prop">
+            <span class="drawer-prop-label">{{ 'Peak occupancy' | t }}</span>
+            <span class="drawer-prop-val">{{ num(z.total.peakOccupancy, 0) }}</span>
+          </div>
         </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Departure rate' | t }}</span>
-          <span class="drawer-prop-val">{{ num(z.total.eventsPerMinute?.departures, 2) }}</span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Traffic balance' | t }}</span>
-          <span class="drawer-prop-val">{{ num(z.total.trafficBalance, 0) }}</span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Peak occupancy' | t }}</span>
-          <span class="drawer-prop-val">{{ num(z.total.peakOccupancy, 0) }}</span>
-        </div>
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Quality' | t }}</span>
-        <app-metric-quality [value]="z.total.quality" />
-      </div>
-    }
+      </section>
 
-    <div style="margin-top: 14px">
-      <a
-        [routerLink]="['/zones', z.scope.zoneId]"
-        class="button primary"
-        style="width: 100%; text-align: center"
-      >
-        {{ 'Inspect zone' | t }} &rarr;
-      </a>
-    </div>
+      <section class="drawer-section">
+        <h4 class="drawer-section-title">{{ 'Quality' | t }}</h4>
+        <div class="drawer-quality-card">
+          <app-metric-quality [value]="z.total.quality" />
+        </div>
+      </section>
+    }
   }
 
-  <!-- Camera Detail Content (Quality Page) -->
   @if (drawerType() === 'camera' && qualityVm(); as qVm) {
     @if (qVm.selectedCamera; as cam) {
-      <div class="drawer-detail-grid">
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'analytics.cameraName' | t }}</span>
-          <span class="drawer-prop-val">{{ cam.cameraName }}</span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Status' | t }}</span>
-          <span class="drawer-prop-val">
-            <span class="freshness-chip">{{ cam.freshness }}</span>
-          </span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'Latest FPS' | t }}</span>
-          <span class="drawer-prop-val">{{ num(cam.latestProcessingFps, 1) }}</span>
-        </div>
-        <div class="drawer-prop">
-          <span class="drawer-prop-label">{{ 'analytics.bucketsCount' | t }}</span>
-          <span class="drawer-prop-val">{{ cam.buckets.length }}</span>
+      <div class="drawer-hero">
+        <div class="drawer-hero-top">
+          <h3 class="drawer-hero-title">{{ cam.cameraName }}</h3>
+          <span class="freshness-chip">{{ cam.freshness | t }}</span>
         </div>
       </div>
 
-      <div style="margin-top: 10px">
-        <h4 style="margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ink)">
-          {{ 'analytics.cameraBuckets' | t }}
-        </h4>
+      <section class="drawer-section">
+        <div class="drawer-detail-grid">
+          <div class="drawer-prop">
+            <span class="drawer-prop-label">{{ 'Latest FPS' | t }}</span>
+            <span class="drawer-prop-val">{{ num(cam.latestProcessingFps, 1) }}</span>
+          </div>
+          <div class="drawer-prop">
+            <span class="drawer-prop-label">{{ 'analytics.bucketsCount' | t }}</span>
+            <span class="drawer-prop-val">{{ cam.buckets.length }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="drawer-section">
+        <h4 class="drawer-section-title">{{ 'analytics.cameraBuckets' | t }}</h4>
         <div class="table-scroll">
           <app-table [label]="cam.cameraName">
             <table>
               <thead>
                 <tr>
                   <th scope="col">{{ 'Period' | t }}</th>
-                  <th scope="col">FPS</th>
+                  <th scope="col">{{ 'fps' | t }}</th>
                   <th scope="col">{{ 'Missing sequences' | t }}</th>
                   <th scope="col">{{ 'Source to receipt' | t }}</th>
                 </tr>
@@ -1570,7 +1128,13 @@
                     </th>
                     <td>{{ num(b.averageFps, 1) }}</td>
                     <td>{{ num(b.missingSequences) }}</td>
-                    <td>{{ num(b.averageSourceToReceiptMs, 1) }}ms</td>
+                    <td>
+                      {{
+                        b.averageSourceToReceiptMs != null
+                          ? num(b.averageSourceToReceiptMs, 1) + 'ms'
+                          : ('N/A' | t)
+                      }}
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -1586,87 +1150,103 @@
             (changed)="cameraBucketPage.set($event)"
           />
         }
-      </div>
+      </section>
     }
   }
 
-  <!-- Episode Detail Content (Congestion History) -->
   @if (drawerType() === 'episode' && congestionVm()?.selectedEpisode; as ep) {
-    <div class="drawer-detail-grid">
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Status' | t }}</span>
-        <span class="drawer-prop-val">
-          <span class="status-pill status-pill-{{ ep.status.toLowerCase() }}">{{ ep.status }}</span>
-        </span>
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Severity' | t }}</span>
-        <span class="drawer-prop-val">{{ ep.severity }}</span>
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Resolution reason' | t }}</span>
-        <span class="drawer-prop-val">{{ ep.resolutionReason }}</span>
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Rule version' | t }}</span>
-        <span class="drawer-prop-val">{{ ep.ruleVersion }}</span>
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Warning / critical seconds' | t }}</span>
-        <span class="drawer-prop-val"
-          >{{ ep.aboveWarningSeconds }}s / {{ ep.aboveCriticalSeconds }}s</span
-        >
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Capacity' | t }}</span>
-        <span class="drawer-prop-val">{{ ep.capacity }}</span>
-      </div>
-    </div>
-    <div class="drawer-prop" style="margin-top: 10px">
-      <span class="drawer-prop-label">{{ 'Quality' | t }}</span>
-      <app-metric-quality [value]="ep.quality" />
-    </div>
-  }
-
-  <!-- Insight Detail Content -->
-  @if (drawerType() === 'insight' && insightsVm()?.selectedInsight; as ins) {
-    <div class="drawer-detail-grid">
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Title' | t }}</span>
-        <span class="drawer-prop-val">{{ ins.title }}</span>
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Severity' | t }}</span>
-        <span class="drawer-prop-val">
-          <span class="status-pill status-pill-{{ ins.severity.toLowerCase() }}">{{
-            ins.severity
-          }}</span>
-        </span>
-      </div>
-      <div class="drawer-prop" style="grid-column: span 2">
-        <span class="drawer-prop-label">{{ 'Description' | t }}</span>
-        <span class="drawer-prop-val" style="font-size: 13px; font-weight: normal">{{
-          ins.description
+    <div class="drawer-hero">
+      <div class="drawer-hero-top">
+        <span class="status-pill status-pill-{{ ep.status.toLowerCase() }}">{{
+          ep.status | t
+        }}</span>
+        <span class="status-pill status-pill-{{ ep.severity.toLowerCase() }}">{{
+          ep.severity | t
         }}</span>
       </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Metric' | t }}</span>
-        <span class="drawer-prop-val"
-          >{{ ins.metricKey }}: {{ num(ins.value, 1) }} {{ ins.unit }}</span
-        >
-      </div>
-      <div class="drawer-prop">
-        <span class="drawer-prop-label">{{ 'Zone' | t }}</span>
-        <span class="drawer-prop-val">
-          <a [routerLink]="['/zones', ins.scope.zoneId]" class="table-link">
-            {{ 'Inspect zone' | t }} &rarr;
-          </a>
-        </span>
-      </div>
     </div>
-    <div class="drawer-prop" style="margin-top: 10px">
-      <span class="drawer-prop-label">{{ 'Quality' | t }}</span>
-      <app-metric-quality [value]="ins.quality" />
-    </div>
+
+    <section class="drawer-section">
+      <div class="drawer-detail-grid">
+        <div class="drawer-prop">
+          <span class="drawer-prop-label">{{ 'Warning / critical seconds' | t }}</span>
+          <span class="drawer-prop-val" dir="ltr"
+            >{{ ep.aboveWarningSeconds }}s / {{ ep.aboveCriticalSeconds }}s</span
+          >
+        </div>
+        <div class="drawer-prop">
+          <span class="drawer-prop-label">{{ 'Capacity' | t }}</span>
+          <span class="drawer-prop-val">{{ ep.capacity }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="drawer-section">
+      <div class="drawer-meta-list">
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">{{ 'Resolution reason' | t }}</span>
+          <span class="drawer-meta-val" dir="auto">{{ ep.resolutionReason || '—' }}</span>
+        </div>
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">{{ 'Rule version' | t }}</span>
+          <span class="drawer-meta-val">{{ ep.ruleVersion }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="drawer-section">
+      <h4 class="drawer-section-title">{{ 'Quality' | t }}</h4>
+      <div class="drawer-quality-card">
+        <app-metric-quality [value]="ep.quality" />
+      </div>
+    </section>
   }
+
+  @if (drawerType() === 'insight' && insightsVm()?.selectedInsight; as ins) {
+    <div class="drawer-hero">
+      <div class="drawer-hero-top">
+        <span class="status-pill status-pill-{{ ins.severity.toLowerCase() }}">{{
+          ins.severity | t
+        }}</span>
+      </div>
+      <h3 class="drawer-hero-title" dir="auto">{{ ins.title }}</h3>
+      <p class="drawer-hero-desc" dir="auto">{{ ins.description }}</p>
+    </div>
+
+    <section class="drawer-section">
+      <h4 class="drawer-section-title">{{ 'Metric' | t }}</h4>
+      <div class="drawer-kpi-banner">
+        <div class="drawer-kpi-main">
+          <span class="drawer-kpi-val">{{ num(ins.value, 1) }}</span>
+          @if (ins.unit) {
+            <span class="drawer-kpi-unit" dir="auto">{{ ins.unit }}</span>
+          }
+        </div>
+        <span class="drawer-kpi-key" dir="ltr">{{ ins.metricKey }}</span>
+      </div>
+    </section>
+
+    <section class="drawer-section">
+      <h4 class="drawer-section-title">{{ 'Quality' | t }}</h4>
+      <div class="drawer-quality-card">
+        <app-metric-quality [value]="ins.quality" />
+      </div>
+    </section>
+  }
+
+  <ng-container drawer-footer>
+    <button type="button" class="button" (click)="closeDrawer()">
+      {{ 'action.close' | t }}
+    </button>
+    @if (drawerType() === 'zone' && selectedZoneForDrawer(); as z) {
+      <a [routerLink]="['/zones', z.scope.zoneId]" class="button primary" (click)="closeDrawer()">
+        {{ 'Inspect zone' | t }}
+      </a>
+    }
+    @if (drawerType() === 'insight' && insightsVm()?.selectedInsight?.scope?.zoneId; as zid) {
+      <a [routerLink]="['/zones', zid]" class="button primary" (click)="closeDrawer()">
+        {{ 'Inspect zone' | t }}
+      </a>
+    }
+  </ng-container>
 </app-drawer>

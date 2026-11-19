@@ -11,12 +11,20 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { auditTime, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { Subject, auditTime, forkJoin, of, switchMap, takeUntil } from 'rxjs';
 import { gsap } from 'gsap';
-import { Api, UiError, apiError } from '../../core/api';
+import { Api } from '../../core/api';
 import { AppContext } from '../../core/context';
 import { FeedState, Realtime } from '../../core/realtime';
 import { calculateLiveOccupancy, describeLiveOccupancy } from '../../core/live-occupancy';
+import {
+  ReportSlice,
+  allSlicesFailed,
+  idleSlice,
+  loadingSlice,
+  resolveSlice,
+  safeReport,
+} from '../../core/report-request';
 import { OccupancyReport, OverviewReport, ReportFilter } from '../../core/models';
 import { ReportFilters } from '../analytics/report-filters';
 import { Icon } from '../../ui/icon';
@@ -60,11 +68,22 @@ export class Overview {
   private readonly elementRef = inject(ElementRef);
   private readonly feedVersion = signal(0);
   private readonly reportVersion = signal(0);
+  private readonly cancelRetries$ = new Subject<void>();
+  private activeScopeVersion = 0;
   readonly filter = signal<ReportFilter | null>(null);
-  readonly report = signal<OverviewReport | null>(null);
-  readonly occupancyReport = signal<OccupancyReport | null>(null);
-  readonly reportLoading = signal(false);
-  readonly reportError = signal<UiError | null>(null);
+  readonly overviewSlice = signal<ReportSlice<OverviewReport>>(idleSlice());
+  readonly occupancySlice = signal<ReportSlice<OccupancyReport>>(idleSlice());
+  readonly report = computed(() => this.overviewSlice().data);
+  readonly occupancyReport = computed(() => this.occupancySlice().data);
+  readonly reportLoading = computed(
+    () => this.overviewSlice().status === 'loading' || this.occupancySlice().status === 'loading',
+  );
+  readonly allReportsFailed = computed(() =>
+    allSlicesFailed([this.overviewSlice(), this.occupancySlice()]),
+  );
+  readonly hasStaleReport = computed(
+    () => this.overviewSlice().stale || this.occupancySlice().stale,
+  );
   readonly selectedZoneId = signal<string | null>(null);
 
   private readonly target = computed(() => {
@@ -207,49 +226,77 @@ export class Overview {
     )
       .pipe(
         switchMap(({ filter, site }) => {
+          this.activeScopeVersion += 1;
+          this.cancelRetries$.next();
+
           if (!filter || !site) {
             loadedScopeKey = '';
-            return of({ data: null, error: null, silent: false });
+            this.overviewSlice.set(idleSlice());
+            this.occupancySlice.set(idleSlice());
+            return of(null);
           }
+
           const scopeKey = `${site}::${JSON.stringify(filter)}`;
-          const silent = scopeKey === loadedScopeKey && this.occupancyReport() !== null;
-          if (!silent) {
-            this.reportLoading.set(true);
-            this.reportError.set(null);
-            if (!loadedScopeKey.startsWith(`${site}::`)) {
-              this.report.set(null);
-              this.occupancyReport.set(null);
-            }
-          }
+          const silent = scopeKey === loadedScopeKey;
+          const prevOverview = this.overviewSlice();
+          const prevOccupancy = this.occupancySlice();
+
+          this.overviewSlice.set(loadingSlice(prevOverview, silent));
+          this.occupancySlice.set(loadingSlice(prevOccupancy, silent));
+
           return forkJoin({
-            overview: this.api.report<OverviewReport>('overview', filter),
-            occupancy: this.api.report<OccupancyReport>('occupancy', filter),
+            overview: safeReport(this.api.report<OverviewReport>('overview', filter)),
+            occupancy: safeReport(this.api.report<OccupancyReport>('occupancy', filter)),
           }).pipe(
-            map((data) => {
+            switchMap((outcomes) => {
               loadedScopeKey = scopeKey;
-              return { data, error: null, silent };
+              return of({ outcomes, silent, prevOverview, prevOccupancy });
             }),
-            catchError((error) => of({ data: null, error: apiError(error), silent })),
           );
         }),
         takeUntilDestroyed(this.destroy),
       )
       .subscribe((result) => {
-        this.reportLoading.set(false);
-        if (result.data) {
-          this.report.set(result.data.overview);
-          this.occupancyReport.set(result.data.occupancy);
-          this.reportError.set(null);
-        } else if (!result.silent) {
-          this.report.set(null);
-          this.occupancyReport.set(null);
-          this.reportError.set(result.error);
-        }
+        if (!result) return;
+        this.overviewSlice.set(
+          resolveSlice(result.outcomes.overview, result.prevOverview, result.silent),
+        );
+        this.occupancySlice.set(
+          resolveSlice(result.outcomes.occupancy, result.prevOccupancy, result.silent),
+        );
       });
 
     this.realtime.summaries
       .pipe(auditTime(3000), takeUntilDestroyed(this.destroy))
       .subscribe(() => this.reportVersion.update((value) => value + 1));
+  }
+
+  retryOverview(): void {
+    const filter = this.filter();
+    if (!filter || this.overviewSlice().status === 'loading') return;
+    const scope = this.activeScopeVersion;
+    const prev = this.overviewSlice();
+    this.overviewSlice.set(loadingSlice(prev, false));
+    safeReport(this.api.report<OverviewReport>('overview', filter))
+      .pipe(takeUntil(this.cancelRetries$), takeUntilDestroyed(this.destroy))
+      .subscribe((outcome) => {
+        if (scope !== this.activeScopeVersion) return;
+        this.overviewSlice.set(resolveSlice(outcome, prev, false));
+      });
+  }
+
+  retryOccupancy(): void {
+    const filter = this.filter();
+    if (!filter || this.occupancySlice().status === 'loading') return;
+    const scope = this.activeScopeVersion;
+    const prev = this.occupancySlice();
+    this.occupancySlice.set(loadingSlice(prev, false));
+    safeReport(this.api.report<OccupancyReport>('occupancy', filter))
+      .pipe(takeUntil(this.cancelRetries$), takeUntilDestroyed(this.destroy))
+      .subscribe((outcome) => {
+        if (scope !== this.activeScopeVersion) return;
+        this.occupancySlice.set(resolveSlice(outcome, prev, false));
+      });
   }
 
   private animateEntrance(): void {

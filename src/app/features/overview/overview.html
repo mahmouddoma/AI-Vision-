@@ -153,9 +153,39 @@
       (changed)="filter.set($event)"
     />
 
-    @if ((reportLoading() || reportError()) && !occupancyReport()) {
+    @if (hasStaleReport()) {
+      <div class="notice warning" role="alert">
+        <app-icon name="warning" />
+        <p>{{ 'report.showingPreviousData' | t }}</p>
+      </div>
+    }
+
+    @if (overviewSlice().error && !overviewSlice().data && !allReportsFailed()) {
+      <div class="notice error" role="alert" data-testid="overview-summary-error">
+        <app-icon name="warning" />
+        <p>{{ 'report.overviewUnavailable' | t }}</p>
+        <button
+          type="button"
+          class="button secondary button-sm"
+          [disabled]="overviewSlice().status === 'loading'"
+          (click)="retryOverview()"
+        >
+          {{ 'action.retry' | t }}
+        </button>
+      </div>
+    }
+
+    @if (allReportsFailed()) {
+      <section class="surface" data-testid="overview-all-failed">
+        <app-state [error]="overviewSlice().error ?? occupancySlice().error" (retry)="refresh()" />
+      </section>
+    } @else if (occupancySlice().status === 'loading' && !occupancyReport()) {
       <section class="surface">
-        <app-state [loading]="reportLoading()" [error]="reportError()" (retry)="refresh()" />
+        <app-state [loading]="true" />
+      </section>
+    } @else if (occupancySlice().error && !occupancyReport()) {
+      <section class="surface" data-testid="overview-occupancy-error">
+        <app-state [error]="occupancySlice().error" (retry)="retryOccupancy()" />
       </section>
     } @else if (occupancyReport(); as occupancy) {
       @if (activeZone(); as zone) {

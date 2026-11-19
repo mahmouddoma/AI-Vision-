@@ -1,5 +1,5 @@
 import { LocalizedFormat } from '../core/localized-format';
-import { TranslatePipe } from '../core/i18n';
+import { I18nService, TranslatePipe } from '../core/i18n';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -196,14 +196,14 @@ export interface ChartPoint {
             }
           }
         }
-        </div>
 
-        <!-- Floating Interactive Tooltip -->
+        <!-- Floating Interactive Tooltip (clamped inside .chart-plot) -->
         @if (hoveredPoint(); as hp) {
           <div
             class="chart-tooltip"
-            [style.left.%]="(hoveredX() / 640) * 100"
-            [class.tooltip-flip]="hoveredX() / 640 > 0.65"
+            [attr.dir]="i18n.dir()"
+            [style.left.%]="hoveredPercent()"
+            [style.--tip-shift.%]="hoveredPercent()"
             role="tooltip"
           >
             <div class="tooltip-header">{{ hp.label }}</div>
@@ -230,6 +230,7 @@ export interface ChartPoint {
             </div>
           </div>
         }
+        </div>
       </div>
 
       <div class="chart-axis" dir="ltr">
@@ -372,6 +373,7 @@ export class Chart {
   );
   readonly primaryLabel = input('Average');
   readonly secondaryLabel = input('');
+  readonly i18n = inject(I18nService);
   readonly num = inject(LocalizedFormat).number;
   readonly hasValues = computed(() =>
     this.points().some((p) => p.value != null || p.secondary != null),
@@ -402,11 +404,22 @@ export class Chart {
     const idx = this.hoveredIndex();
     return idx != null ? (this.points()[idx] ?? null) : null;
   });
+  readonly isBarChart = computed(() => {
+    const k = this.effectiveKind();
+    return k !== 'line' && k !== 'area';
+  });
   readonly hoveredX = computed(() => {
     const idx = this.hoveredIndex();
     if (idx == null) return 0;
+    const count = this.points().length;
+    if (this.isBarChart() && count > 0) {
+      return ((idx + 0.5) / count) * 640;
+    }
     return this.x(idx);
   });
+  readonly hoveredPercent = computed(() =>
+    Math.max(0, Math.min(100, (this.hoveredX() / 640) * 100)),
+  );
   readonly hoveredYPrimary = computed(() => {
     const p = this.hoveredPoint();
     return p?.value != null ? this.y(p.value) : null;
@@ -417,28 +430,22 @@ export class Chart {
   });
 
   onHover(event: MouseEvent): void {
-    const svg = event.currentTarget as SVGSVGElement;
-    const rect = svg.getBoundingClientRect();
-    if (!rect.width || this.points().length === 0) return;
-    const xRatio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const idx = Math.min(
-      this.points().length - 1,
-      Math.max(0, Math.round(xRatio * (this.points().length - 1))),
-    );
-    this.hoveredIndex.set(idx);
+    this.updateHoverFromClientX(event.clientX, event.currentTarget as SVGSVGElement);
   }
 
   onTouch(event: TouchEvent): void {
     if (!event.touches.length) return;
-    const touch = event.touches[0];
-    const svg = event.currentTarget as SVGSVGElement;
+    this.updateHoverFromClientX(event.touches[0].clientX, event.currentTarget as SVGSVGElement);
+  }
+
+  private updateHoverFromClientX(clientX: number, svg: SVGSVGElement): void {
     const rect = svg.getBoundingClientRect();
-    if (!rect.width || this.points().length === 0) return;
-    const xRatio = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-    const idx = Math.min(
-      this.points().length - 1,
-      Math.max(0, Math.round(xRatio * (this.points().length - 1))),
-    );
+    const count = this.points().length;
+    if (!rect.width || count === 0) return;
+    const xRatio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const idx = this.isBarChart()
+      ? Math.min(count - 1, Math.floor(xRatio * count))
+      : Math.min(count - 1, Math.max(0, Math.round(xRatio * (count - 1))));
     this.hoveredIndex.set(idx);
   }
 

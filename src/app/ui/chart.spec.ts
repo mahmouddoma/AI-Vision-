@@ -36,4 +36,31 @@ describe('visualization geometry and unavailable measurements', () => {
     expect(chart.bars(true)).toContain('Q');
     expect(chart.bars(false)).not.toContain('NaN');
   });
+
+  it('clamps tooltip shift proportionally inside plot bounds and centers on bar groups', () => {
+    const fixture = TestBed.createComponent(Chart);
+    fixture.componentRef.setInput('kind', 'groupedBar');
+    fixture.componentRef.setInput('title', 'Traffic');
+    fixture.componentRef.setInput('points', [
+      { label: '0:00', value: 42 },
+      { label: '1:00', value: 12 },
+      { label: '2:00', value: 14 },
+    ]);
+    fixture.detectChanges();
+    const chart = fixture.componentInstance;
+
+    // First bar group centered at 1/6 of width (~16.67%), never 0% overflowing left
+    chart.hoveredIndex.set(0);
+    fixture.detectChanges();
+    const tip = (fixture.nativeElement as HTMLElement).querySelector(
+      '.chart-plot .chart-tooltip',
+    ) as HTMLElement | null;
+    expect(tip).toBeTruthy();
+    expect(chart.hoveredPercent()).toBeCloseTo(16.67, 1);
+
+    // Last bar group centered at 5/6 of width (~83.33%), clamped inside right bound
+    chart.hoveredIndex.set(2);
+    fixture.detectChanges();
+    expect(chart.hoveredPercent()).toBeCloseTo(83.33, 1);
+  });
 });

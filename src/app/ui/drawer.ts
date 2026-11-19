@@ -19,12 +19,15 @@ import { Icon, IconName } from './icon';
     <dialog
       #dialog
       class="app-drawer-dialog"
+      [class]="'app-drawer-dialog drawer-tone-' + tone()"
       [attr.aria-labelledby]="'drawer-title-' + id()"
+      (click)="onBackdropClick($event)"
       (keydown)="onKeydown($event)"
       (cancel)="cancel($event)"
       (close)="onNativeClose()"
     >
       <div class="drawer-inner">
+        <div class="drawer-sheet-handle" aria-hidden="true"></div>
         <header class="drawer-header">
           <div class="drawer-header-info">
             @if (resolvedIcon(); as ic) {
@@ -66,6 +69,7 @@ export class Drawer {
   readonly title = input.required<string>();
   readonly subtitle = input<string | undefined>(undefined);
   readonly icon = input<IconName | undefined>(undefined);
+  readonly tone = input<'accent' | 'warning' | 'danger' | 'info'>('accent');
   readonly open = input<boolean>(false);
   readonly hasFooter = input<boolean>(false);
   readonly closed = output<void>();
@@ -101,6 +105,12 @@ export class Drawer {
   cancel(event: Event): void {
     event.preventDefault();
     this.close();
+  }
+
+  onBackdropClick(event: MouseEvent): void {
+    if (event.target === this.dialog()?.nativeElement) {
+      this.close();
+    }
   }
 
   onKeydown(event: KeyboardEvent): void {
